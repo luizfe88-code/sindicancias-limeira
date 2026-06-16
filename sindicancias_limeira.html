@@ -368,9 +368,22 @@ async function toggleStep(sid){
     await saveCE(ce);
 }
 async function marcarConc(id){
+    const dtInput=prompt('Informe a data de conclusão (dd/mm/aaaa):');
+    if(!dtInput){toast('Data de conclusão obrigatória.','err');return;}
+    // Parse dd/mm/yyyy or yyyy-mm-dd
+    let dt='';
+    if(dtInput.includes('/')){
+        const p=dtInput.trim().split('/');
+        if(p.length===3&&p[2].length===4) dt=p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0');
+    } else if(dtInput.includes('-')&&dtInput.length===10){
+        dt=dtInput.trim();
+    }
+    if(!dt||isNaN(new Date(dt).getTime())){toast('Data inválida. Use dd/mm/aaaa.','err');return;}
     const ce=ces.find(c=>c.id===id);
-    ce.situacao='CONCLUÍDO';STEPS.forEach(s=>{ce.steps[s.id]=true;});if(!ce.dt_conc)ce.dt_conc=new Date().toISOString().split('T')[0];
-    sel=ce;renderAll();await saveCE(ce);toast('Processo concluído','ok');
+    ce.situacao='CONCLUÍDO';
+    ce.dt_conc=dt;
+    STEPS.forEach(s=>{ce.steps[s.id]=true;});
+    sel=ce;renderAll();await saveCE(ce);toast('Processo concluído em '+dtInput,'ok');
 }
 async function reabrir(id){
     const ce=ces.find(c=>c.id===id);
