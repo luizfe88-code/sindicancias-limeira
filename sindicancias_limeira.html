@@ -522,7 +522,7 @@ function selCE(id){sel=ces.find(c=>c.id===id);renderList();renderDetail();}
 function renderDetail(){
     const el=document.getElementById('detail');
     if(!sel){el.innerHTML='<div class="demp"><svg width="44" height="44" fill="none" stroke="#9ca3af" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/></svg><span>Selecione um processo</span></div>';return;}
-    const ce=sel,d=dias(ce.data);
+    const ce=ces.find(c=>c.id===sel.id)||sel,d=dias(ce.data); // sempre busca a versão mais atual do array ces
     let meta='';
     if(ce.sei)       meta+='<span><label>SEI:</label> '+ce.sei+'</span>';
     if(ce.matricula) meta+='<span><label>Mat.:</label> '+ce.matricula+'</span>';
@@ -688,8 +688,16 @@ async function saveModal(){
         localizacao:document.getElementById('f-loc').value,
         unidade_destino:document.getElementById('f-loc').value==='TRANSFERIDO'?document.getElementById('f-unidade-destino').value.trim():''};
     closeModal();
-    if(editId){const ce=ces.find(c=>c.id===editId);Object.assign(ce,obj);sel=ce;}
-    else{const nc=Object.assign({},obj,{id:nce+'_'+(mat||Date.now()),steps:{}});ces.unshift(nc);sel=nc;}
+    if(editId){
+        const ce=ces.find(c=>c.id===editId);
+        const stepsBackup=ce.steps||{}; // garante preservação explícita do checklist
+        Object.assign(ce,obj);
+        ce.steps=stepsBackup;
+        sel=ce;
+    }else{
+        const nc=Object.assign({},obj,{id:nce+'_'+(mat||Date.now()),steps:{}});
+        ces.unshift(nc);sel=nc;
+    }
     renderAll();await saveCE(sel);toast('Salvo','ok');
 }
 document.getElementById('modal').addEventListener('click',e=>{if(e.target===document.getElementById('modal'))closeModal();});
