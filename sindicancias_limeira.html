@@ -393,12 +393,19 @@ async function sbFetch(path,method,body,extraHeaders){
 async function sbGet(){
     return await sbFetch('ces?select=*&order=nce.asc');
 }
+// Upsert manual e explícito: tenta UPDATE (PATCH) por id; se nada foi afetado, faz INSERT (POST).
+// Não depende de configuração de constraint do PostgREST — elimina qualquer ambiguidade.
 async function sbUpsert(ce){
-    // on_conflict=id garante UPDATE se já existir, INSERT se não — atômico no Postgres, nunca duplica
-    return await sbFetch('ces?on_conflict=id','POST',[ce],{'Prefer':'resolution=merge-duplicates,return=minimal'});
+    const existing=await sbFetch('ces?id=eq.'+encodeURIComponent(ce.id)+'&select=id');
+    if(existing&&existing.length>0){
+        return await sbFetch('ces?id=eq.'+encodeURIComponent(ce.id),'PATCH',ce,{'Prefer':'return=minimal'});
+    }else{
+        return await sbFetch('ces','POST',[ce],{'Prefer':'return=minimal'});
+    }
 }
 async function sbUpsertBatch(rows){
-    return await sbFetch('ces?on_conflict=id','POST',rows,{'Prefer':'resolution=merge-duplicates,return=minimal'});
+    // Importação inicial: banco está vazio, sempre INSERT direto (mais rápido, sem checagem)
+    return await sbFetch('ces','POST',rows,{'Prefer':'return=minimal'});
 }
 async function sbDelete(id){
     return await sbFetch('ces?id=eq.'+encodeURIComponent(id),'DELETE',undefined,{'Prefer':'return=minimal'});
