@@ -352,7 +352,7 @@ const PLANILHA=[{"id":"CE_01_00600022070_2026-05","nce":"01","tipo":"PID","sei":
 const SECS=['Abertura','Instrução','Conclusão'];
 const MESES=["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
-let ces=[],sel=null,editId=null,charts={};
+let ces=[],selId=null,editId=null,charts={};
 
 // ── Date helpers ──────────────────────────────────────────────
 function maskDate(el){
@@ -494,7 +494,7 @@ function renderList(){
     document.getElementById('sbcnt').textContent=lista.length+' processo'+(lista.length!==1?'s':'');
     if(!lista.length){document.getElementById('ce-list').innerHTML='<div style="padding:20px;text-align:center;color:#9ca3af;font-size:12px">Nenhum resultado</div>';return;}
     document.getElementById('ce-list').innerHTML=lista.map(ce=>{
-        const p=prog(ce),d=dias(ce.data),isA=sel&&sel.id===ce.id;
+        const p=prog(ce),d=dias(ce.data),isA=selId===ce.id;
         const col=ce.tipo==='AP'?'#2557a7':(p&&p.pct===100?'#1a7a4a':p&&p.pct>50?'#2557a7':'#b45309');
         let bs=ce.tipo==='AP'?'<span class="badge bbl">AP</span>':
             ce.situacao==='CONCLUÍDO'?'<span class="badge bok">Concluído</span>':
@@ -516,13 +516,14 @@ function renderList(){
             ph+'<div class="bgs">'+bs+'</div></div>';
     }).join('');
 }
-function selCE(id){sel=ces.find(c=>c.id===id);renderList();renderDetail();}
+function selCE(id){selId=id;renderList();renderDetail();}
 
 // ── Detalhe ───────────────────────────────────────────────────
 function renderDetail(){
     const el=document.getElementById('detail');
-    if(!sel){el.innerHTML='<div class="demp"><svg width="44" height="44" fill="none" stroke="#9ca3af" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/></svg><span>Selecione um processo</span></div>';return;}
-    const ce=ces.find(c=>c.id===sel.id)||sel,d=dias(ce.data); // sempre busca a versão mais atual do array ces
+    const ce=ces.find(c=>c.id===selId);
+    if(!ce){el.innerHTML='<div class="demp"><svg width="44" height="44" fill="none" stroke="#9ca3af" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/></svg><span>Selecione um processo</span></div>';return;}
+    const d=dias(ce.data);
     let meta='';
     if(ce.sei)       meta+='<span><label>SEI:</label> '+ce.sei+'</span>';
     if(ce.matricula) meta+='<span><label>Mat.:</label> '+ce.matricula+'</span>';
@@ -577,11 +578,11 @@ function renderDetail(){
 
 // ── Actions ───────────────────────────────────────────────────
 async function toggleStep(sid){
-    if(!sel||sel.tipo==='AP')return;
-    const ce=ces.find(c=>c.id===sel.id);
+    const ce=ces.find(c=>c.id===selId);
+    if(!ce||ce.tipo==='AP')return;
     if(!ce.steps)ce.steps={};
     ce.steps[sid]=!ce.steps[sid];
-    sel=ce;renderList();renderDetail();await saveCE(ce);
+    renderList();renderDetail();await saveCE(ce);
 }
 function marcarConc(id){
     const ce=ces.find(c=>c.id===id);
@@ -605,17 +606,17 @@ async function confirmarConclusao(){
     const ce=ces.find(c=>c.id===id);
     ce.situacao='CONCLUÍDO';ce.dt_conc=dt;ce.gravidade=grav;
     STEPS.forEach(s=>{ce.steps[s.id]=true;});
-    sel=ce;renderAll();await saveCE(ce);
+    renderAll();await saveCE(ce);
     toast('Concluído — '+grav+' — '+dtInput,'ok');
 }
 async function reabrir(id){
     const ce=ces.find(c=>c.id===id);
-    ce.situacao='PENDENTE';sel=ce;renderAll();await saveCE(ce);toast('Processo reaberto','info');
+    ce.situacao='PENDENTE';renderAll();await saveCE(ce);toast('Processo reaberto','info');
 }
 async function delCE(id){
     if(!confirm('Remover este CE?'))return;
     showOvl('Excluindo...');
-    try{await sbDelete(id);ces=ces.filter(c=>c.id!==id);sel=null;renderAll();toast('CE excluído','ok');}
+    try{await sbDelete(id);ces=ces.filter(c=>c.id!==id);if(selId===id)selId=null;renderAll();toast('CE excluído','ok');}
     catch(e){toast('Erro','err');}
     hideOvl();
 }
@@ -688,17 +689,20 @@ async function saveModal(){
         localizacao:document.getElementById('f-loc').value,
         unidade_destino:document.getElementById('f-loc').value==='TRANSFERIDO'?document.getElementById('f-unidade-destino').value.trim():''};
     closeModal();
+    let savedCe;
     if(editId){
         const ce=ces.find(c=>c.id===editId);
         const stepsBackup=ce.steps||{}; // garante preservação explícita do checklist
         Object.assign(ce,obj);
         ce.steps=stepsBackup;
-        sel=ce;
+        selId=ce.id;
+        savedCe=ce;
     }else{
         const nc=Object.assign({},obj,{id:nce+'_'+(mat||Date.now()),steps:{}});
-        ces.unshift(nc);sel=nc;
+        ces.unshift(nc);selId=nc.id;
+        savedCe=nc;
     }
-    renderAll();await saveCE(sel);toast('Salvo','ok');
+    renderAll();await saveCE(savedCe);toast('Salvo','ok');
 }
 document.getElementById('modal').addEventListener('click',e=>{if(e.target===document.getElementById('modal'))closeModal();});
 
