@@ -393,15 +393,11 @@ async function sbFetch(path,method,body,extraHeaders){
 async function sbGet(){
     return await sbFetch('ces?select=*&order=nce.asc');
 }
-// Upsert manual e explícito: tenta UPDATE (PATCH) por id; se nada foi afetado, faz INSERT (POST).
-// Não depende de configuração de constraint do PostgREST — elimina qualquer ambiguidade.
+// Replace garantido: apaga qualquer linha com esse id e insere de novo.
+// Estratégia à prova de ambiguidade de PATCH/RLS — sempre resulta em exatamente 1 linha por id.
 async function sbUpsert(ce){
-    const existing=await sbFetch('ces?id=eq.'+encodeURIComponent(ce.id)+'&select=id');
-    if(existing&&existing.length>0){
-        return await sbFetch('ces?id=eq.'+encodeURIComponent(ce.id),'PATCH',ce,{'Prefer':'return=minimal'});
-    }else{
-        return await sbFetch('ces','POST',[ce],{'Prefer':'return=minimal'});
-    }
+    await sbFetch('ces?id=eq.'+encodeURIComponent(ce.id),'DELETE',undefined,{'Prefer':'return=minimal'});
+    return await sbFetch('ces','POST',[ce],{'Prefer':'return=minimal'});
 }
 async function sbUpsertBatch(rows){
     // Importação inicial: banco está vazio, sempre INSERT direto (mais rápido, sem checagem)
