@@ -411,28 +411,36 @@ async function sbDelete(id){
 }
 
 // ── Boot ──────────────────────────────────────────────────────
+let bootComplete=false; // bloqueia qualquer edição/seleção antes do Supabase responder de verdade
 async function boot(){
-    ces=PLANILHA.map(p=>Object.assign({},p,{steps:p.steps||{}}));
-    setSyn('Sincronizando...');renderAll();
+    showOvl('Conectando ao Supabase...');
+    setSyn('Conectando...');
     try{
-        showOvl('Sincronizando com Supabase...');
         const rows=await sbGet();
         if(rows&&rows.length>0){
             ces=rows.map(r=>Object.assign({},r,{steps:r.steps||{}}));
             setSyn('✓ Supabase — '+ces.length+' registros');
             toast('Dados carregados','ok');
         }else{
+            ces=PLANILHA.map(p=>Object.assign({},p,{steps:p.steps||{}}));
             showOvl('Importando '+PLANILHA.length+' registros...');
             for(let i=0;i<PLANILHA.length;i+=20){
                 const batch=PLANILHA.slice(i,i+20);
                 await sbUpsertBatch(batch);
                 showOvl('Importando... '+Math.min(i+20,PLANILHA.length)+'/'+PLANILHA.length);
             }
-            setSyn('✓ Supabase — '+PLANILHA.length+' registros importados');
+            const rows2=await sbGet();
+            ces=rows2.map(r=>Object.assign({},r,{steps:r.steps||{}}));
+            setSyn('✓ Supabase — '+ces.length+' registros importados');
             toast('Dados importados!','ok');
         }
+        bootComplete=true;
         renderAll();
-    }catch(e){setSyn('⚠ Offline — dados locais');toast('Supabase: '+e.message,'err');}
+    }catch(e){
+        setSyn('⚠ Erro de conexão — recarregue a página');
+        toast('Falha ao conectar ao Supabase: '+e.message,'err');
+        // NÃO usa PLANILHA local como fallback silencioso — evita salvar dados incompletos por engano
+    }
     hideOvl();
 }
 
@@ -522,7 +530,7 @@ function renderList(){
             ph+'<div class="bgs">'+bs+'</div></div>';
     }).join('');
 }
-function selCE(id){selId=id;renderList();renderDetail();}
+function selCE(id){if(!bootComplete){toast('Aguarde a sincronização terminar...','info');return;}selId=id;renderList();renderDetail();}
 
 // ── Detalhe ───────────────────────────────────────────────────
 function renderDetail(){
@@ -627,6 +635,7 @@ async function delCE(id){
     hideOvl();
 }
 function openModal(id){
+    if(!bootComplete){toast('Aguarde a sincronização terminar...','info');return;}
     editId=id||null;
     document.getElementById('modal-title').textContent=id?'Editar CE':'Novo CE';
     ['f-nce','f-sei','f-sind','f-mat','f-nat','f-exec','f-apr','f-qtd','f-un'].forEach(x=>document.getElementById(x).value='');
