@@ -388,13 +388,15 @@ function dias(d){return d?Math.floor((new Date()-new Date(d))/86400000):null;}
 async function sbFetch(path,method,body,extraHeaders){
     const headers={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
     if(extraHeaders)Object.assign(headers,extraHeaders);
-    const r=await fetch(SB_URL+'/rest/v1/'+path,{method:method||'GET',headers,body:body!==undefined?JSON.stringify(body):undefined});
+    // cache:'no-store' impede o navegador de reutilizar respostas antigas desta API
+    const r=await fetch(SB_URL+'/rest/v1/'+path,{method:method||'GET',headers,body:body!==undefined?JSON.stringify(body):undefined,cache:'no-store'});
     if(!r.ok){const t=await r.text();throw new Error('HTTP '+r.status+': '+t);}
     const txt=await r.text();
     return txt?JSON.parse(txt):null;
 }
 async function sbGet(){
-    return await sbFetch('ces?select=*&order=nce.asc');
+    // timestamp na query (_t) garante URL sempre única — nenhum cache HTTP intermediário pode reaproveitar
+    return await sbFetch('ces?select=*&order=nce.asc&_t='+Date.now());
 }
 // Replace garantido: apaga qualquer linha com esse id e insere de novo.
 // Estratégia à prova de ambiguidade de PATCH/RLS — sempre resulta em exatamente 1 linha por id.
