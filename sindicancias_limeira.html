@@ -395,8 +395,7 @@ async function sbFetch(path,method,body,extraHeaders){
     return txt?JSON.parse(txt):null;
 }
 async function sbGet(){
-    // timestamp na query (_t) garante URL sempre única — nenhum cache HTTP intermediário pode reaproveitar
-    return await sbFetch('ces?select=*&order=nce.asc&_t='+Date.now());
+    return await sbFetch('ces?select=*&order=nce.asc');
 }
 // Replace garantido: apaga qualquer linha com esse id e insere de novo.
 // Estratégia à prova de ambiguidade de PATCH/RLS — sempre resulta em exatamente 1 linha por id.
