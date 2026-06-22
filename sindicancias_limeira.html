@@ -761,16 +761,17 @@ async function saveModal(){
         localizacao:document.getElementById('f-loc').value,
         unidade_destino:document.getElementById('f-loc').value==='TRANSFERIDO'?document.getElementById('f-ud').value.trim():'',
     };
+    const currentEditId=editId; // salva antes de closeModal() zerar
     closeModal();
     let savedCe;
-    if(editId){
-        const ce=ces.find(c=>c.id===editId);
+    if(currentEditId){
+        const ce=ces.find(c=>c.id===currentEditId);
         if(!ce)return;
         const stepsBackup=ce.steps||{};
         Object.assign(ce,obj);
         ce.steps=stepsBackup; // nunca sobrescreve checklist ao editar
-        ce.id=editId; // mantém ID original
-        selId=editId;
+        ce.id=currentEditId; // mantém ID original
+        selId=currentEditId;
         savedCe=ce;
     }else{
         const id=obj.tipo==='AP'?'AP_'+nce:'CE_'+nce+'_'+sei.replace(/[^0-9]/g,'')+'_'+new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
