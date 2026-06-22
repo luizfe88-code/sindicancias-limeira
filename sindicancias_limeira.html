@@ -33,8 +33,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .lista-top{padding:10px;border-bottom:1px solid #e2e8f0;display:flex;flex-direction:column;gap:6px}
 .search{width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:12px;outline:none}
 .search:focus{border-color:#2557a7}
-.filters{display:flex;gap:6px}
-.filters select{flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:4px 6px;font-size:11px;background:#fff}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.filters select{flex:1;min-width:0;border:1px solid #e2e8f0;border-radius:6px;padding:4px 4px;font-size:11px;background:#fff}
 .lista-count{font-size:11px;color:#94a3b8;padding:6px 10px 2px}
 .lista-items{flex:1;overflow-y:auto}
 /* ── Card ── */
@@ -200,9 +200,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
             <option value="PID">Só PID</option>
             <option value="AP">Só AP</option>
           </select>
-          <select id="f-loc-list" onchange="renderList()">
-            <option value="">Localização</option>
-            <option value="NA UP">📍 Na UP</option>
+        </div>
+        <div class="filters">
+          <select id="f-loc-list" onchange="renderList()" style="flex:1">
+            <option value="">📍 Localização</option>
+            <option value="NA UP">Na UP</option>
             <option value="TRANSFERIDO">Transferido</option>
           </select>
         </div>
