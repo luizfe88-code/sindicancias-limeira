@@ -200,6 +200,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
             <option value="PID">Só PID</option>
             <option value="AP">Só AP</option>
           </select>
+          <select id="f-loc-list" onchange="renderList()">
+            <option value="">Localização</option>
+            <option value="NA UP">📍 Na UP</option>
+            <option value="TRANSFERIDO">Transferido</option>
+          </select>
         </div>
       </div>
       <div class="lista-count" id="lista-count"></div>
@@ -227,6 +232,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
       <select id="rank-grav" onchange="renderRank()">
         <option value="">Todas gravidades</option>
         <option>GRAVE</option><option>MÉDIA</option><option>LEVE</option>
+      </select>
+      <select id="rank-loc" onchange="renderRank()">
+        <option value="">Localização</option>
+        <option value="NA UP">📍 Na UP</option>
+        <option value="TRANSFERIDO">Transferido</option>
+      </select>
+      <select id="rank-cit" onchange="renderRank()">
+        <option value="">Citação/Defesa</option>
+        <option value="FUNAP">Adv. FUNAP</option>
+        <option value="PART">Adv. Particular</option>
+        <option value="SEM">Sem advogado</option>
       </select>
     </div>
     <table class="rank-table">
@@ -531,9 +547,11 @@ function renderList(){
     const q=(document.getElementById('srch').value||'').toLowerCase();
     const sit=document.getElementById('f-sit').value;
     const tipo=document.getElementById('f-tipo').value;
+    const loc=document.getElementById('f-loc-list').value;
     let list=ces.filter(c=>{
         if(tipo&&c.tipo!==tipo)return false;
         if(sit&&c.situacao!==sit)return false;
+        if(loc&&c.localizacao!==loc)return false;
         if(q){const s=(c.nce+' '+c.sindicado+' '+c.sei+' '+c.natureza).toLowerCase();if(!s.includes(q))return false;}
         return true;
     });
@@ -788,9 +806,14 @@ async function saveModal(){
 function renderRank(){
     const sit=document.getElementById('rank-sit').value;
     const grav=document.getElementById('rank-grav').value;
+    const loc=document.getElementById('rank-loc').value;
+    const cit=document.getElementById('rank-cit').value;
     let list=ces.filter(c=>c.tipo==='PID');
     if(sit)list=list.filter(c=>c.situacao===sit);
     if(grav)list=list.filter(c=>c.gravidade===grav);
+    if(loc)list=list.filter(c=>c.localizacao===loc);
+    if(cit==='SEM')list=list.filter(c=>!c.citacao);
+    else if(cit)list=list.filter(c=>c.citacao&&c.citacao.includes(cit));
     list.sort((a,b)=>calcScore(b)-calcScore(a));
     const cols=['#b91c1c','#b45309','#2557a7','#475569','#1a7a4a'];
     document.getElementById('rank-body').innerHTML=list.map((ce,i)=>{
