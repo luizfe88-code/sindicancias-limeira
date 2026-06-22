@@ -446,13 +446,16 @@ async function boot(){
 
 async function saveCE(ce){
     setSyn('Salvando...');
+    const stepsDone=Object.values(ce.steps||{}).filter(Boolean).length;
+    console.log('[saveCE] id='+ce.id+' steps='+stepsDone+'/21 situacao='+ce.situacao);
     try{
         await sbSave(ce);
         setSyn('✓ Salvo às '+new Date().toLocaleTimeString('pt-BR'));
+        console.log('[saveCE] OK — '+ce.id);
     }catch(e){
         setSyn('⚠ Erro ao salvar');
         toast('Erro: '+e.message,'err');
-        console.error('saveCE error:',e,ce);
+        console.error('[saveCE] ERRO:',e.message,'— objeto:',JSON.stringify({id:ce.id,steps_done:stepsDone}));
     }
 }
 
