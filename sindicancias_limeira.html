@@ -231,10 +231,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
         <option value="PENDENTE">Pendentes</option><option value="">Todos</option>
         <option value="CONCLUÍDO">Concluídos</option>
       </select>
-      <select id="rank-grav" onchange="renderRank()">
-        <option value="">Todas gravidades</option>
-        <option>GRAVE</option><option>MÉDIA</option><option>LEVE</option>
-      </select>
+
       <select id="rank-loc" onchange="renderRank()">
         <option value="">Localização</option>
         <option value="NA UP">📍 Na UP</option>
@@ -862,13 +859,11 @@ async function saveModal(){
 // ── Ranking ────────────────────────────────────────────────────
 function renderRank(){
     const sit=document.getElementById('rank-sit').value;
-    const grav=document.getElementById('rank-grav').value;
     const loc=document.getElementById('rank-loc').value;
     const cit=document.getElementById('rank-cit').value;
     const fase=document.getElementById('rank-fase').value;
     let list=ces.filter(c=>c.tipo==='PID');
     if(sit)list=list.filter(c=>c.situacao===sit);
-    if(grav)list=list.filter(c=>c.gravidade===grav);
     if(loc)list=list.filter(c=>c.localizacao===loc);
     if(cit==='SEM')list=list.filter(c=>!c.citacao);
     else if(cit)list=list.filter(c=>c.citacao&&c.citacao.includes(cit));
@@ -879,9 +874,13 @@ function renderRank(){
         const p=prog(ce),d=dias(ce.data);
         const col=cols[Math.min(i,cols.length-1)];
         const nxtStep=getNextStepLabel(ce);
-        return`<tr>
+        const isNaUp=ce.localizacao==='NA UP';
+        const isTransfR=ce.localizacao==='TRANSFERIDO';
+        const trStyle=isNaUp?'background:#bfdbfe':isTransfR?'background:#fef9c3':'';
+        const locBadge=isNaUp?'<span style="font-size:9px;font-weight:700;background:#1d4ed8;color:#fff;padding:1px 6px;border-radius:8px;margin-left:4px">📍 Na UP</span>':isTransfR?'<span style="font-size:9px;font-weight:700;background:#b45309;color:#fff;padding:1px 6px;border-radius:8px;margin-left:4px">🔄 Transf.</span>':'';
+        return`<tr${trStyle?' style="'+trStyle+'"':''}>
             <td><div class="rank-num" style="background:${col}">${i+1}</div></td>
-            <td><strong>CE ${ce.nce}</strong><br><small style="color:#64748b">${ce.sindicado}</small></td>
+            <td><strong>CE ${ce.nce}</strong>${locBadge}<br><small style="color:#64748b">${ce.sindicado}</small></td>
             <td>${ce.natureza||'—'}</td>
             <td style="color:${ce.gravidade==='GRAVE'?'#b91c1c':ce.gravidade==='MÉDIA'?'#b45309':'#1a7a4a'};font-weight:700">${ce.gravidade||'—'}</td>
             <td style="color:${d>30?'#b91c1c':d>15?'#b45309':'#1a7a4a'};font-weight:600">${d}d</td>
