@@ -226,16 +226,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 <!-- Página Prioridades -->
 <div class="page" id="page-rank">
   <div class="rank-page">
-    <div class="rank-filters">
+    <div class="rank-filters" id="rank-filters-wrap">
       <select id="rank-sit" onchange="renderRank()">
         <option value="PENDENTE">Pendentes</option><option value="">Todos</option>
         <option value="CONCLUÍDO">Concluídos</option>
       </select>
-
-      <select id="rank-loc" onchange="renderRank()">
+      <select id="rank-loc" onchange="rankLocChange()">
         <option value="">Localização</option>
         <option value="NA UP">📍 Na UP</option>
-        <option value="TRANSFERIDO">Transferido</option>
+        <option value="TRANSFERIDO">🔄 Transferido</option>
+      </select>
+      <select id="rank-ud" onchange="renderRank()" style="display:none">
+        <option value="">Todas as unidades</option>
       </select>
       <select id="rank-cit" onchange="renderRank()">
         <option value="">Citação/Defesa</option>
@@ -267,7 +269,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
         <option value="Recibo de peticionamento">Recibo de peticionamento</option>
         <option value="Encerramento do processo">Encerramento</option>
       </select>
+      <button class="btn" style="background:#fee2e2;color:#b91c1c;font-size:11px;padding:5px 12px" onclick="limparFiltrosRank()">✕ Limpar filtros</button>
     </div>
+    <div id="rank-resumo" style="font-size:11px;color:#64748b;margin-bottom:8px;padding:2px 0"></div>
     <table class="rank-table">
       <thead><tr>
         <th>#</th><th>CE / Sindicado</th><th>Natureza</th>
@@ -857,6 +861,27 @@ async function saveModal(){
 }
 
 // ── Ranking ────────────────────────────────────────────────────
+function rankLocChange(){
+    const loc=document.getElementById('rank-loc').value;
+    const udSel=document.getElementById('rank-ud');
+    udSel.style.display=loc==='TRANSFERIDO'?'inline-block':'none';
+    if(loc!=='TRANSFERIDO')udSel.value='';
+    // Popular select de unidades com as unidades que existem nos dados
+    if(loc==='TRANSFERIDO'){
+        const uds=[...new Set(ces.filter(c=>c.localizacao==='TRANSFERIDO'&&c.unidade_destino).map(c=>c.unidade_destino))].sort();
+        udSel.innerHTML='<option value="">Todas as unidades</option>'+uds.map(u=>`<option value="${u}">${u}</option>`).join('');
+    }
+    renderRank();
+}
+function limparFiltrosRank(){
+    document.getElementById('rank-sit').value='PENDENTE';
+    document.getElementById('rank-loc').value='';
+    document.getElementById('rank-ud').value='';
+    document.getElementById('rank-ud').style.display='none';
+    document.getElementById('rank-cit').value='';
+    document.getElementById('rank-fase').value='';
+    renderRank();
+}
 function renderRank(){
     const sit=document.getElementById('rank-sit').value;
     const loc=document.getElementById('rank-loc').value;
@@ -868,6 +893,19 @@ function renderRank(){
     if(cit==='SEM')list=list.filter(c=>!c.citacao);
     else if(cit)list=list.filter(c=>c.citacao&&c.citacao.includes(cit));
     if(fase)list=list.filter(c=>getNextStepLabel(c)===fase);
+    const ud=document.getElementById('rank-ud').value;
+    if(ud)list=list.filter(c=>c.unidade_destino===ud);
+    // Resumo
+    const resumo=document.getElementById('rank-resumo');
+    if(resumo){
+        const filtros=[];
+        if(document.getElementById('rank-sit').value)filtros.push(document.getElementById('rank-sit').value);
+        if(document.getElementById('rank-loc').value)filtros.push(document.getElementById('rank-loc').value);
+        if(ud)filtros.push(ud);
+        if(document.getElementById('rank-cit').value)filtros.push(document.getElementById('rank-cit').value);
+        if(document.getElementById('rank-fase').value)filtros.push(document.getElementById('rank-fase').value);
+        resumo.textContent=list.length+' processo(s)'+(filtros.length?' — '+filtros.join(' · '):'');
+    }
     list.sort((a,b)=>calcScore(b)-calcScore(a));
     const cols=['#b91c1c','#b45309','#2557a7','#475569','#1a7a4a'];
     document.getElementById('rank-body').innerHTML=list.map((ce,i)=>{
