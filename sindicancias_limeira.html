@@ -246,6 +246,30 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
         <option value="PART">Adv. Particular</option>
         <option value="SEM">Sem advogado</option>
       </select>
+      <select id="rank-fase" onchange="renderRank()">
+        <option value="">Fase atual</option>
+        <option value="Lançamento no Cartório">Lançamento no Cartório</option>
+        <option value="Lançamento no GEPEN">Lançamento no GEPEN</option>
+        <option value="Criação do processo no SEI">Criação do processo no SEI</option>
+        <option value="Folha líder">Folha líder</option>
+        <option value="Juntada do Comunicado de Evento">Juntada do CE</option>
+        <option value="Portaria de instauração">Portaria de instauração</option>
+        <option value="Termo de instalação">Termo de instalação</option>
+        <option value="Termo de compromisso">Termo de compromisso</option>
+        <option value="Despacho de isolamento">Despacho de isolamento</option>
+        <option value="Ofício para o processo de execução">Ofício p/ execução</option>
+        <option value="Juntada do recibo">Juntada do recibo</option>
+        <option value="Qualificativa do preso">Qualificativa do preso</option>
+        <option value="Termo de declaração dos policiais">Decl. dos policiais</option>
+        <option value="Citação do preso">Citação do preso</option>
+        <option value="Termo de declaração do preso">Decl. do preso</option>
+        <option value="Defesa do advogado">Defesa do advogado</option>
+        <option value="Relatório conclusivo">Relatório conclusivo</option>
+        <option value="Despacho decisório">Despacho decisório</option>
+        <option value="Ofício de encerramento para o Juiz">Ofício p/ Juiz</option>
+        <option value="Recibo de peticionamento">Recibo de peticionamento</option>
+        <option value="Encerramento do processo">Encerramento</option>
+      </select>
     </div>
     <table class="rank-table">
       <thead><tr>
@@ -304,7 +328,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
     <div class="fg"><label>Sindicado</label><input id="f-sind" placeholder="Nome completo"></div>
     <div class="g2">
       <div class="fg"><label>Matrícula</label><input id="f-mat"></div>
-      <div class="fg"><label>Regime</label><select id="f-reg"><option value="">—</option></select></div>
+      <div class="fg"><label>Regime</label><select id="f-reg"><option value="">—</option><option value="FE">FE (Fechado)</option><option value="RSA">RSA (Semiaberto)</option><option value="SA">SA (Semiaberto)</option><option value="RA">RA (Aberto)</option></select></div>
     </div>
     <div class="fg"><label>Natureza</label><input id="f-nat" list="dl-nat" placeholder="Digite ou selecione...">
       <datalist id="dl-nat"></datalist>
@@ -345,7 +369,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
     <div class="g2">
       <div class="fg"><label>Localização do Preso</label>
         <div style="display:flex;gap:10px;padding:4px 0;flex-wrap:wrap">
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;padding:7px 14px;border-radius:6px;background:#dbeafe;color:#1e40af;border:2px solid transparent" id="lbl-naup">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;padding:7px 14px;border-radius:6px;background:#bfdbfe;color:#1e40af;border:2px solid transparent" id="lbl-naup">
             <input type="radio" name="f-loc-radio" id="f-loc-naup" value="NA UP" onchange="setLoc(this.value)"> 📍 Na UP
           </label>
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;padding:7px 14px;border-radius:6px;background:#fef9c3;color:#92400e;border:2px solid transparent" id="lbl-transf">
@@ -588,7 +612,7 @@ function renderList(){
         const isTransf=ce.localizacao==='TRANSFERIDO';
         let cStyle='';
         if(!isA(ce.id)){
-            if(naUp)cStyle='background:#dbeafe;border-left:3px solid #2557a7';
+            if(naUp)cStyle='background:#bfdbfe;border-left:3px solid #1d4ed8';
             else if(isTransf)cStyle='background:#fef9c3;border-left:3px solid #b45309';
         }
         return `<div class="ci${isA(ce.id)?' active':''}"${cStyle?' style="'+cStyle+'"':''} onclick="selCE('${ce.id}')">
@@ -841,12 +865,14 @@ function renderRank(){
     const grav=document.getElementById('rank-grav').value;
     const loc=document.getElementById('rank-loc').value;
     const cit=document.getElementById('rank-cit').value;
+    const fase=document.getElementById('rank-fase').value;
     let list=ces.filter(c=>c.tipo==='PID');
     if(sit)list=list.filter(c=>c.situacao===sit);
     if(grav)list=list.filter(c=>c.gravidade===grav);
     if(loc)list=list.filter(c=>c.localizacao===loc);
     if(cit==='SEM')list=list.filter(c=>!c.citacao);
     else if(cit)list=list.filter(c=>c.citacao&&c.citacao.includes(cit));
+    if(fase)list=list.filter(c=>getNextStepLabel(c)===fase);
     list.sort((a,b)=>calcScore(b)-calcScore(a));
     const cols=['#b91c1c','#b45309','#2557a7','#475569','#1a7a4a'];
     document.getElementById('rank-body').innerHTML=list.map((ce,i)=>{
