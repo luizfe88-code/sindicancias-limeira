@@ -415,24 +415,16 @@ async function sbDel(id){
 async function boot(){
     showOvl('Conectando ao Supabase...');
     try{
-        let rows=await sbGet();
-        if(rows&&rows.length>0){
-            ces=rows.map(r=>Object.assign({},r,{steps:r.steps||{}}));
-            setSyn('✓ Supabase — '+ces.length+' registros');
-        }else{
-            // Banco vazio — importar PLANILHA
-            showOvl('Importando dados iniciais...');
-            const batches=[];
-            for(let i=0;i<PLANILHA.length;i+=20)batches.push(PLANILHA.slice(i,i+20));
-            for(let i=0;i<batches.length;i++){
-                showOvl('Importando... '+(Math.min((i+1)*20,PLANILHA.length))+'/'+PLANILHA.length);
-                await sbFetch('ces','POST',batches[i],{'Prefer':'return=minimal'});
-            }
-            rows=await sbGet();
-            ces=rows.map(r=>Object.assign({},r,{steps:r.steps||{}}));
-            setSyn('✓ Importados — '+ces.length+' registros');
-            toast('Dados importados com sucesso!','ok');
+        const rows=await sbGet();
+        if(!rows||rows.length===0){
+            hideOvl();
+            setSyn('⚠ Banco vazio');
+            toast('Banco vazio — execute o SQL de importação no Supabase','err');
+            document.getElementById('detail').innerHTML='<div class="demp"><svg width="44" height="44" fill="none" stroke="#9ca3af" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/></svg><span style="color:#b91c1c;font-weight:600">Banco vazio. Execute o SQL de importação no Supabase.</span></div>';
+            return;
         }
+        ces=rows.map(r=>Object.assign({},r,{steps:r.steps||{}}));
+        setSyn('✓ Supabase — '+ces.length+' registros');
         bootComplete=true;
         renderAll();
     }catch(e){
