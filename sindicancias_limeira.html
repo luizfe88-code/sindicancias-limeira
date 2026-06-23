@@ -181,6 +181,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   <div class="tab active" id="tab-proc" onclick="showPage('proc',this)">📋 Processos</div>
   <div class="tab" id="tab-rank" onclick="showPage('rank',this)">🎯 Prioridades</div>
   <div class="tab" id="tab-apr" onclick="showPage('apr',this)">📦 Apreensões</div>
+  <div class="tab" id="tab-cit" onclick="showPage('cit',this)">📄 Citações</div>
   <div class="tab" id="tab-dash" onclick="showPage('dash',this)">📊 Dashboard</div>
 </div>
 
@@ -319,6 +320,52 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 </div>
 
 <!-- Página Dashboard -->
+<!-- Página Citações -->
+<div class="page" id="page-cit">
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:12px 16px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <select id="cit-f-grav" onchange="renderCitacoes()" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;background:#fff">
+        <option value="">Todas gravidades</option>
+        <option>GRAVE</option><option>MÉDIA</option><option>LEVE</option>
+      </select>
+      <select id="cit-f-loc" onchange="renderCitacoes()" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;background:#fff">
+        <option value="">Localização</option>
+        <option value="NA UP">📍 Na UP</option>
+        <option value="TRANSFERIDO">🔄 Transferido</option>
+      </select>
+      <input id="cit-f-srch" placeholder="🔍 Buscar..." oninput="renderCitacoes()" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;min-width:160px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;margin-left:4px">
+        <input type="checkbox" id="cit-selall" onchange="toggleSelecionarTodosCit()"> Selecionar todos
+      </label>
+      <span id="cit-total" style="font-size:11px;color:#94a3b8;margin-left:4px"></span>
+      <div id="cit-lote-btns" style="display:none;margin-left:auto;display:flex;gap:8px;align-items:center">
+        <span id="cit-lote-count" style="font-size:12px;font-weight:700;color:#1a2744"></span>
+        <select id="cit-autoridade-pg" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;background:#fff;min-width:180px">
+          <option value="">— Autoridade Apuradora —</option>
+        </select>
+        <button class="btn" style="background:#fef9c3;color:#92400e;font-size:12px;padding:5px 14px" onclick="gerarCitacaoPagina()">📄 Gerar PDF</button>
+        <button class="btn" style="background:#e2e8f0;color:#475569;font-size:11px;padding:5px 10px" onclick="limparSelCitPagina()">✕</button>
+      </div>
+      <button class="btn" style="background:#e2e8f0;color:#475569;font-size:11px;padding:5px 12px;margin-left:auto" onclick="openModalServidores()">⚙ Servidores</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:12px 16px">
+      <table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0">
+        <thead><tr style="background:#1a2744;color:#fff">
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;width:36px"></th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">CE / Sindicado</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">SEI</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Natureza</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Gravidade</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Localização</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Dias</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Regime</th>
+        </tr></thead>
+        <tbody id="cit-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <div class="page" id="page-dash">
   <div class="dash-page">
     <div class="dash-card"><h3>Por Natureza</h3><canvas id="ch-nat" height="200"></canvas></div>
@@ -403,28 +450,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
     <div class="mo-footer">
       <button class="btn btn-grey" onclick="closeModal()">Cancelar</button>
       <button class="btn btn-pr" onclick="saveModal()">Salvar</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Citação -->
-<div class="mo" id="cit-modal" style="display:none" onclick="if(event.target===this)document.getElementById('cit-modal').style.display='none'">
-  <div class="mo-box" style="width:640px">
-    <div class="mo-title">📄 Gerar Citação</div>
-    <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:12px">
-      <div class="fg" style="flex:1;margin:0">
-        <label>Autoridade Apuradora</label>
-        <select id="cit-autoridade" style="border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:13px;width:100%">
-          <option value="">— Selecione —</option>
-        </select>
-      </div>
-      <button class="btn" style="background:#e2e8f0;color:#475569;font-size:11px;padding:8px 12px;white-space:nowrap" onclick="openModalServidores()">⚙ Gerenciar</button>
-    </div>
-    <div style="font-size:11px;color:#64748b;margin-bottom:8px" id="cit-lista-info"></div>
-    <div id="cit-preview" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;font-size:11px;color:#1e293b;max-height:260px;overflow-y:auto;line-height:1.7;display:none"></div>
-    <div class="mo-footer">
-      <button class="btn btn-grey" onclick="document.getElementById('cit-modal').style.display='none'">Cancelar</button>
-      <button class="btn btn-pr" onclick="confirmarGerarCitacao()">📥 Gerar PDF(s)</button>
     </div>
   </div>
 </div>
@@ -617,6 +642,7 @@ function showPage(id,tab){
     document.getElementById('stats-bar').style.display=id==='proc'?'flex':'none';
     if(id==='rank')renderRank();
     if(id==='apr')renderApr();
+    if(id==='cit')renderCitacoes();
     if(id==='dash')renderDash();
 }
 
@@ -743,7 +769,7 @@ function renderDetail(){
         <div class="det-actions">
             <button class="btn btn-ok" onclick="abrirConclusao('${ce.id}')">✓ Concluído</button>
             <button class="btn btn-ed" onclick="openModal('${ce.id}')">✎ Editar</button>
-            ${ce.tipo==='PID'&&!(ce.steps&&ce.steps['citacao_step'])?`<button class="btn" style="background:#fef9c3;color:#92400e" onclick="abrirCitacaoSingle('${ce.id}')">📄 Citação</button>`:''}
+
             <button class="btn btn-del" onclick="delCE('${ce.id}')">✕ Excluir</button>
         </div>
     </div>
@@ -1040,18 +1066,175 @@ function renderDash(){
 
 
 // ══════════════════════════════════════════════════════════════════════
+// PÁGINA CITAÇÕES
+// ══════════════════════════════════════════════════════════════════════
+let selCitPagina=new Set();
+
+function renderCitacoes(){
+    const grav=document.getElementById('cit-f-grav')?.value||'';
+    const loc=document.getElementById('cit-f-loc')?.value||'';
+    const q=(document.getElementById('cit-f-srch')?.value||'').toLowerCase();
+    // Somente PIDs pendentes de citação
+    let list=ces.filter(c=>c.tipo==='PID'&&!(c.steps&&c.steps['citacao_step']));
+    if(grav)list=list.filter(c=>c.gravidade===grav);
+    if(loc)list=list.filter(c=>c.localizacao===loc);
+    if(q)list=list.filter(c=>(c.nce+' '+c.sindicado+' '+c.sei+' '+c.natureza).toLowerCase().includes(q));
+    list.sort((a,b)=>{
+        const gv={GRAVE:0,MÉDIA:1,LEVE:2};
+        return (gv[a.gravidade]??3)-(gv[b.gravidade]??3)||dias(b.data)-dias(a.data);
+    });
+    const total=document.getElementById('cit-total');
+    if(total)total.textContent=list.length+' processo(s) pendente(s) de citação';
+    const tbody=document.getElementById('cit-tbody');
+    if(!tbody)return;
+    if(!list.length){
+        tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:24px;color:#94a3b8;font-size:12px">✓ Nenhum processo pendente de citação</td></tr>';
+        return;
+    }
+    const gravCol={GRAVE:'#b91c1c',MÉDIA:'#b45309',LEVE:'#1a7a4a'};
+    tbody.innerHTML=list.map(ce=>{
+        const d=dias(ce.data);
+        const isNaUp=ce.localizacao==='NA UP';
+        const isTransf=ce.localizacao==='TRANSFERIDO';
+        const rowBg=isNaUp?'background:#bfdbfe':isTransf?'background:#fef9c3':'';
+        const locLabel=isNaUp?'<span style="font-size:10px;font-weight:700;background:#1d4ed8;color:#fff;padding:1px 6px;border-radius:8px">📍 Na UP</span>':isTransf?'<span style="font-size:10px;font-weight:700;background:#b45309;color:#fff;padding:1px 6px;border-radius:8px">🔄 '+ce.unidade_destino+'</span>':'—';
+        const sel=selCitPagina.has(ce.id);
+        return`<tr style="border-bottom:1px solid #f1f5f9;${rowBg};cursor:pointer" onclick="toggleSelCit('${ce.id}')">
+            <td style="padding:9px 12px;text-align:center"><input type="checkbox" ${sel?'checked':''} onclick="event.stopPropagation();toggleSelCit('${ce.id}')" style="accent-color:#2557a7;width:15px;height:15px"></td>
+            <td style="padding:9px 12px"><strong>CE ${ce.nce}</strong><br><small style="color:#475569">${ce.sindicado}</small></td>
+            <td style="padding:9px 12px;font-size:11px;color:#475569">${ce.sei}</td>
+            <td style="padding:9px 12px;font-size:11px">${ce.natureza||'—'}</td>
+            <td style="padding:9px 12px;font-weight:700;color:${gravCol[ce.gravidade]||'#475569'}">${ce.gravidade||'—'}</td>
+            <td style="padding:9px 12px">${locLabel}</td>
+            <td style="padding:9px 12px;font-weight:600;color:${d>30?'#b91c1c':d>15?'#b45309':'#1a7a4a'}">${d}d</td>
+            <td style="padding:9px 12px;font-size:11px">${ce.regime||'—'}</td>
+        </tr>`;
+    }).join('');
+    atualizarBotoesCitPagina();
+    // Sincronizar select de autoridade
+    const sel2=document.getElementById('cit-autoridade-pg');
+    if(sel2&&servidores.length){
+        const cur=sel2.value;
+        sel2.innerHTML='<option value="">— Autoridade Apuradora —</option>'+servidores.map(s=>`<option value="${s.nome}">${s.nome}</option>`).join('');
+        if(cur)sel2.value=cur;
+    }
+}
+function toggleSelCit(id){
+    if(selCitPagina.has(id))selCitPagina.delete(id);
+    else selCitPagina.add(id);
+    atualizarBotoesCitPagina();
+    renderCitacoes();
+}
+function toggleSelecionarTodosCit(){
+    const chk=document.getElementById('cit-selall');
+    const grav=document.getElementById('cit-f-grav')?.value||'';
+    const loc=document.getElementById('cit-f-loc')?.value||'';
+    const q=(document.getElementById('cit-f-srch')?.value||'').toLowerCase();
+    let list=ces.filter(c=>c.tipo==='PID'&&!(c.steps&&c.steps['citacao_step']));
+    if(grav)list=list.filter(c=>c.gravidade===grav);
+    if(loc)list=list.filter(c=>c.localizacao===loc);
+    if(q)list=list.filter(c=>(c.nce+' '+c.sindicado+' '+c.sei+' '+c.natureza).toLowerCase().includes(q));
+    if(chk.checked)list.forEach(c=>selCitPagina.add(c.id));
+    else selCitPagina.clear();
+    atualizarBotoesCitPagina();
+    renderCitacoes();
+}
+function limparSelCitPagina(){
+    selCitPagina.clear();
+    const chk=document.getElementById('cit-selall');
+    if(chk)chk.checked=false;
+    atualizarBotoesCitPagina();
+    renderCitacoes();
+}
+function atualizarBotoesCitPagina(){
+    const btns=document.getElementById('cit-lote-btns');
+    const count=document.getElementById('cit-lote-count');
+    if(!btns)return;
+    if(selCitPagina.size>0){
+        btns.style.display='flex';
+        count.textContent=selCitPagina.size+' selecionado(s)';
+        // Sincronizar autoridade
+        const sel=document.getElementById('cit-autoridade-pg');
+        if(sel&&servidores.length&&!sel.options.length){
+            sel.innerHTML='<option value="">— Autoridade Apuradora —</option>'+servidores.map(s=>`<option value="${s.nome}">${s.nome}</option>`).join('');
+        }
+    }else btns.style.display='none';
+}
+function gerarCitacaoPagina(){
+    const autoridade=document.getElementById('cit-autoridade-pg')?.value;
+    if(!autoridade){toast('Selecione a Autoridade Apuradora.','err');return;}
+    const lista=[...selCitPagina].map(id=>ces.find(c=>c.id===id)).filter(Boolean);
+    if(!lista.length){toast('Selecione ao menos um processo.','err');return;}
+    gerarPDFCitacoes(lista,autoridade);
+    // Marcar citacao_step
+    lista.forEach(async ce=>{
+        if(!ce.steps)ce.steps={};
+        ce.steps['citacao_step']=true;
+        await saveCE(ce);
+    });
+    limparSelCitPagina();
+    setTimeout(()=>renderCitacoes(),500);
+    toast(lista.length+' citação(ões) gerada(s)!','ok');
+}
+function gerarPDFCitacoes(lista,autoridade){
+    const meses=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    const hoje=new Date();
+    const dataExtenso=hoje.getDate()+' de '+meses[hoje.getMonth()]+' de '+hoje.getFullYear()+'.';
+    const pagesHtml=lista.map((ce,i)=>`
+        <div style="page-break-after:${i<lista.length-1?'always':'avoid'};padding:2.5cm;font-family:Arial,sans-serif;font-size:12pt;line-height:1.8">
+            <p style="text-align:center;font-weight:bold;font-size:14pt;letter-spacing:4px;margin-bottom:4px">C I T A Ç Ã O</p>
+            <p style="text-align:center;font-weight:bold;margin-bottom:20px">PROCEDIMENTO INVESTIGATIVO DISCIPLINAR<br>
+            PENITENCIARIA DE LIMEIRA - C.E ${String(ce.nce).padStart(4,'0')}/2026</p>
+            <p><strong>Sindicado:</strong> ${ce.sindicado}</p>
+            <p><strong>Matrícula:</strong> ${ce.matricula}</p>
+            <p><strong>Nº do Processo SEI:</strong> ${ce.sei}</p>
+            <br>
+            <p style="text-align:justify">Na qualidade de Autoridade apuradora, em atendimento ao disposto no artigo 64, inciso II, do Regimento Interno Padrão das Unidades Prisionais do Estado (RIP), fica o detento acima indicado ciente da apuração que, em tese, teria praticado falta disciplinar.</p>
+            <br>
+            <p style="text-align:justify">É assegurado ao sindicado o direito ao contraditório e a ampla defesa, através de advogado constituído ou advogado da FUNAP que acompanhará todos os atos do Procedimento Administrativo Disciplinar.</p>
+            <br>
+            <p>Esclarecido do teor acima, o sindicado opta por:</p>
+            <br>
+            <p>(_) Advogado constituído</p>
+            <p>Nome____________________________________Contato_______________</p>
+            <br>
+            <p>(_) Advogado da FUNAP</p>
+            <br><br>
+            <p>Limeira, ${dataExtenso}</p>
+            <br><br>
+            <p style="font-weight:bold">${autoridade}</p>
+            <p>Autoridade Apuradora</p>
+            <br><br>
+            <p>Ciente: __________________________________________________</p>
+            <p><strong>Sindicado:</strong> ${ce.sindicado}</p>
+            <p><strong>Matrícula:</strong> ${ce.matricula}</p>
+            <p><strong>Nº do Processo SEI:</strong> ${ce.sei}</p>
+        </div>`).join('');
+    const w=window.open('','_blank');
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Citações — ${lista.length} processo(s)</title>
+    <style>@page{size:A4;margin:0}body{margin:0}@media print{.no-print{display:none}}</style></head>
+    <body>
+    <div class="no-print" style="position:fixed;top:0;left:0;right:0;background:#1a2744;color:#fff;padding:10px 20px;display:flex;gap:10px;align-items:center;z-index:999">
+        <span style="font-weight:700">📄 ${lista.length} citação(ões) — ${autoridade}</span>
+        <button onclick="window.print()" style="background:#2557a7;color:#fff;border:none;border-radius:6px;padding:6px 16px;font-size:12px;cursor:pointer;font-weight:700">🖨 Imprimir / Salvar PDF</button>
+        <button onclick="window.close()" style="background:#fee2e2;color:#b91c1c;border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer">✕ Fechar</button>
+    </div>
+    <div style="padding-top:50px">${pagesHtml}</div>
+    </body></html>`);
+    w.document.close();
+}
+
+// ══════════════════════════════════════════════════════════════════════
 // SERVIDORES — Supabase tabela 'servidores'
 // ══════════════════════════════════════════════════════════════════════
 async function loadServidores(){
     try{
         const rows=await sbFetch('servidores?select=id,nome&order=nome.asc');
         servidores=rows||[];
-        const sel=document.getElementById('cit-autoridade');
-        if(sel){
-            const cur=sel.value;
-            sel.innerHTML='<option value="">— Selecione —</option>'+servidores.map(s=>`<option value="${s.nome}">${s.nome}</option>`).join('');
-            if(cur)sel.value=cur;
-        }
+        ['cit-autoridade','cit-autoridade-pg'].forEach(sid=>{
+            const sel=document.getElementById(sid);
+            if(sel){const cur=sel.value;sel.innerHTML='<option value="">— Selecione —</option>'+servidores.map(s=>`<option value="${s.nome}">${s.nome}</option>`).join('');if(cur)sel.value=cur;}
+        });
         renderListaServidores();
     }catch(e){console.warn('Servidores não carregados:',e.message);}
 }
