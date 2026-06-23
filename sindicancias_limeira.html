@@ -271,10 +271,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
         <option value="Encerramento do processo">Encerramento</option>
       </select>
       <button class="btn" style="background:#fee2e2;color:#b91c1c;font-size:11px;padding:5px 12px" onclick="limparFiltrosRank()">✕ Limpar filtros</button>
-      <select id="rank-grav" onchange="renderRank()">
-        <option value="">Todas gravidades</option>
-        <option>GRAVE</option><option>MÉDIA</option><option>LEVE</option>
-      </select>
+
     </div>
     <table class="rank-table">
       <thead><tr>
@@ -315,6 +312,56 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 </div>
 
 <!-- Página Dashboard -->
+<!-- Página Citações -->
+<div class="page" id="page-cit">
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:12px 16px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select id="cit-f-grav" onchange="renderCitacoes()" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;background:#fff">
+        <option value="">Todas gravidades</option>
+        <option>GRAVE</option><option>MÉDIA</option><option>LEVE</option>
+      </select>
+      <select id="cit-f-loc" onchange="citLocChange()" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;background:#fff">
+        <option value="">Localização</option>
+        <option value="NA UP">📍 Na UP</option>
+        <option value="TRANSFERIDO">🔄 Transferido</option>
+      </select>
+      <select id="cit-f-ud" onchange="renderCitacoes()" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;background:#fff;display:none">
+        <option value="">Todas as unidades</option>
+      </select>
+      <input id="cit-f-srch" placeholder="🔍 Buscar..." oninput="renderCitacoes()" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;min-width:160px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;margin-left:4px">
+        <input type="checkbox" id="cit-selall" onchange="toggleSelecionarTodosCit()"> Selecionar todos
+      </label>
+      <span id="cit-total" style="font-size:11px;color:#94a3b8;margin-left:4px"></span>
+      <div id="cit-lote-btns" style="display:none;margin-left:auto;gap:8px;align-items:center">
+        <span id="cit-lote-count" style="font-size:12px;font-weight:700;color:#1a2744"></span>
+        <select id="cit-autoridade-pg" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;background:#fff;min-width:180px">
+          <option value="">— Autoridade Apuradora —</option>
+        </select>
+        <button class="btn" style="background:#fef9c3;color:#92400e;font-size:12px;padding:5px 14px" onclick="gerarCitacaoPagina()">📄 Gerar PDF</button>
+        <button class="btn" style="background:#e2e8f0;color:#475569;font-size:11px;padding:5px 10px" onclick="limparSelCitPagina()">✕</button>
+      </div>
+      <button class="btn" style="background:#e2e8f0;color:#475569;font-size:11px;padding:5px 12px;margin-left:auto" onclick="openModalServidores()">⚙ Servidores</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:12px 16px">
+      <table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0">
+        <thead><tr style="background:#1a2744;color:#fff">
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;width:36px"></th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">CE / Sindicado</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">SEI</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Natureza</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Gravidade</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Localização</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Dias</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Regime</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600"></th>
+        </tr></thead>
+        <tbody id="cit-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <div class="page" id="page-dash">
   <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
     <div style="padding:10px 16px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -889,24 +936,38 @@ async function saveModal(){
 
 // ── Ranking ────────────────────────────────────────────────────
 function renderRank(){
-    const sit=document.getElementById('rank-sit').value;
-    const grav=document.getElementById('rank-grav').value;
+    const sit=document.getElementById('rank-sit')?.value||'';
+    const loc=document.getElementById('rank-loc')?.value||'';
+    const ud=document.getElementById('rank-ud')?.value||'';
+    const cit=document.getElementById('rank-cit')?.value||'';
+    const fase=document.getElementById('rank-fase')?.value||'';
     let list=ces.filter(c=>c.tipo==='PID');
     if(sit)list=list.filter(c=>c.situacao===sit);
-    if(grav)list=list.filter(c=>c.gravidade===grav);
+    if(loc)list=list.filter(c=>c.localizacao===loc);
+    if(ud)list=list.filter(c=>c.unidade_destino===ud);
+    if(cit==='SEM')list=list.filter(c=>!c.citacao);
+    else if(cit)list=list.filter(c=>c.citacao&&c.citacao.includes(cit));
+    if(fase)list=list.filter(c=>getNextStepLabel(c)===fase);
     list.sort((a,b)=>calcScore(b)-calcScore(a));
     const cols=['#b91c1c','#b45309','#2557a7','#475569','#1a7a4a'];
+    const resumo=document.getElementById('rank-resumo');
+    if(resumo)resumo.textContent=list.length+' processo(s)';
     document.getElementById('rank-body').innerHTML=list.map((ce,i)=>{
         const p=prog(ce),d=dias(ce.data);
         const col=cols[Math.min(i,cols.length-1)];
         const nxtStep=getNextStepLabel(ce);
-        return`<tr>
+        const isNaUp=ce.localizacao==='NA UP';
+        const isTransfR=ce.localizacao==='TRANSFERIDO';
+        const trStyle=isNaUp?'background:#bfdbfe':isTransfR?'background:#fef9c3':'';
+        const locBadge=isNaUp?'<span style="font-size:9px;font-weight:700;background:#1d4ed8;color:#fff;padding:1px 6px;border-radius:8px;margin-left:4px">📍 Na UP</span>':isTransfR?'<span style="font-size:9px;font-weight:700;background:#b45309;color:#fff;padding:1px 6px;border-radius:8px;margin-left:4px">🔄 Transf.</span>':'';
+        const locCol=isNaUp?'<span style="font-size:9px;font-weight:700;background:#1d4ed8;color:#fff;padding:2px 7px;border-radius:8px">📍 Na UP</span>':isTransfR?'<span style="font-size:9px;font-weight:700;background:#b45309;color:#fff;padding:2px 7px;border-radius:8px">🔄 '+(ce.unidade_destino||'Transf.')+'</span>':'<span style="color:#94a3b8">—</span>';
+        return`<tr${trStyle?' style="'+trStyle+'"':''}>
             <td><div class="rank-num" style="background:${col}">${i+1}</div></td>
-            <td><strong>CE ${ce.nce}</strong><br><small style="color:#64748b">${ce.sindicado}</small></td>
+            <td><strong>CE ${ce.nce}</strong>${locBadge}<br><small style="color:#64748b">${ce.sindicado}${ce.matricula?' — '+ce.matricula:''}</small></td>
             <td>${ce.natureza||'—'}</td>
             <td style="color:${ce.gravidade==='GRAVE'?'#b91c1c':ce.gravidade==='MÉDIA'?'#b45309':'#1a7a4a'};font-weight:700">${ce.gravidade||'—'}</td>
             <td style="color:${d>30?'#b91c1c':d>15?'#b45309':'#1a7a4a'};font-weight:600">${d}d</td>
-            <td style="font-size:11px">${isNaUp?'<span style="font-size:9px;font-weight:700;background:#1d4ed8;color:#fff;padding:2px 7px;border-radius:8px">📍 Na UP</span>':isTransfR?'<span style="font-size:9px;font-weight:700;background:#b45309;color:#fff;padding:2px 7px;border-radius:8px">🔄 '+(ce.unidade_destino||'Transf.')+'</span>':'<span style="color:#94a3b8">—</span>'}</td>
+            <td style="font-size:11px">${locCol}</td>
             <td style="font-size:11px;color:#475569">${nxtStep}</td>
             <td style="min-width:120px">
                 ${p?`<div style="font-size:11px;color:#64748b;margin-bottom:3px">${p.pct}%</div><div style="background:#e2e8f0;border-radius:4px;height:5px"><div style="width:${p.pct}%;height:5px;border-radius:4px;background:${pcol(p.pct)}"></div></div>`:''}
@@ -950,25 +1011,6 @@ function renderApr(){
     </tr>`).join('');
 }
 
-// ── Dashboard ─────────────────────────────────────────────────
-function renderDash(){
-    const count=(arr,key)=>arr.reduce((a,c)=>{a[c[key]]=(a[c[key]]||0)+1;return a;},{});
-    const mkChart=(id,labels,data,type,colors)=>{
-        if(charts[id])charts[id].destroy();
-        const ctx=document.getElementById(id).getContext('2d');
-        charts[id]=new Chart(ctx,{type,data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:1}]},options:{plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}});
-    };
-    const pids=ces.filter(c=>c.tipo==='PID');
-    const COLORS=['#2557a7','#b91c1c','#1a7a4a','#b45309','#6366f1','#ec4899','#14b8a6','#f59e0b'];
-    const nat=count(pids,'natureza');
-    mkChart('ch-nat',Object.keys(nat),Object.values(nat),'bar',COLORS);
-    const grav=count(pids,'gravidade');
-    mkChart('ch-grav',Object.keys(grav),Object.values(grav),'doughnut',['#b91c1c','#b45309','#1a7a4a']);
-    const sit=count(pids,'situacao');
-    mkChart('ch-sit',Object.keys(sit),Object.values(sit),'doughnut',COLORS);
-    const reg=count(pids,'regime');
-    mkChart('ch-reg',Object.keys(reg),Object.values(reg),'bar',COLORS);
-}
 
 
 // ── Dashboard full ────────────────────────────────────────────
