@@ -323,7 +323,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
     <table class="apr-table">
       <thead><tr>
         <th>CE</th><th>Sindicado</th><th>Natureza</th>
-        <th>Objeto Apreendido</th><th>Qtde</th><th>Unidade</th><th>Processo Execução</th>
+        <th>Objeto Apreendido</th><th>Qtde</th><th>Unidade</th><th>Processo Execução</th><th></th>
       </tr></thead>
       <tbody id="apr-body"></tbody>
     </table>
@@ -382,11 +382,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 </div>
 
 <div class="page" id="page-dash">
-  <div class="dash-page">
-    <div class="dash-card"><h3>Por Natureza</h3><canvas id="ch-nat" height="140"></canvas></div>
-    <div class="dash-card"><h3>Por Gravidade</h3><canvas id="ch-grav" height="140"></canvas></div>
-    <div class="dash-card"><h3>Por Situação</h3><canvas id="ch-sit" height="140"></canvas></div>
-    <div class="dash-card"><h3>Por Regime</h3><canvas id="ch-reg" height="140"></canvas></div>
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+    <!-- Filtros do Dashboard -->
+    <div style="padding:10px 16px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <label style="font-size:11px;font-weight:600;color:#64748b">Período:</label>
+      <input type="date" id="dash-de" onchange="renderDash()" style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:11px">
+      <span style="font-size:11px;color:#94a3b8">até</span>
+      <input type="date" id="dash-ate" onchange="renderDash()" style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:11px">
+      <select id="dash-grav" onchange="renderDash()" style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:11px;background:#fff">
+        <option value="">Todas gravidades</option>
+        <option>GRAVE</option><option>MÉDIA</option><option>LEVE</option>
+      </select>
+      <select id="dash-reg" onchange="renderDash()" style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:11px;background:#fff">
+        <option value="">Todos regimes</option>
+        <option value="FE">FE (Fechado)</option><option value="RSA">RSA</option><option value="SA">SA</option>
+      </select>
+      <button class="btn" style="background:#e2e8f0;color:#475569;font-size:11px;padding:4px 10px" onclick="limparFiltrosDash()">✕ Limpar</button>
+      <span id="dash-filtro-info" style="font-size:10px;color:#94a3b8;margin-left:4px"></span>
+    </div>
+    <!-- KPIs -->
+    <div style="display:flex;gap:1px;background:#e2e8f0;flex-shrink:0" id="dash-kpis"></div>
+    <!-- Gráficos -->
+    <div style="flex:1;overflow-y:auto;padding:12px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:auto auto;gap:10px;align-content:start" id="dash-grid">
+      <div class="dash-card"><h3>Por Natureza</h3><canvas id="ch-nat" height="130"></canvas></div>
+      <div class="dash-card"><h3>Por Gravidade</h3><canvas id="ch-grav" height="130"></canvas></div>
+      <div class="dash-card"><h3>Por Situação</h3><canvas id="ch-sit" height="130"></canvas></div>
+      <div class="dash-card"><h3>Por Regime</h3><canvas id="ch-reg" height="130"></canvas></div>
+      <div class="dash-card"><h3>Defesa — FUNAP vs Particular</h3><canvas id="ch-cit" height="130"></canvas></div>
+      <div class="dash-card"><h3>Localização dos Presos</h3><canvas id="ch-loc" height="130"></canvas></div>
+    </div>
   </div>
 </div>
 
@@ -1053,33 +1077,120 @@ function renderApr(){
     if(curObj)filtered=filtered.filter(c=>c.apreensoes===curObj);
     document.getElementById('apr-body').innerHTML=filtered.map(ce=>`<tr>
         <td><strong>CE ${ce.nce}</strong></td>
-        <td>${ce.sindicado}</td>
+        <td>${ce.sindicado}${ce.matricula?' — '+ce.matricula:''}</td>
         <td style="font-size:11px">${ce.natureza||'—'}</td>
         <td>${ce.apreensoes}</td>
         <td>${ce.quantidade||'—'}</td>
         <td>${ce.unidade||'—'}</td>
         <td style="font-size:11px;color:#64748b">${ce.execucao||'—'}</td>
+        <td><button class="btn btn-pr" style="font-size:10px;padding:3px 9px" onclick="selCE('${ce.id}');showPage('proc',document.getElementById('tab-proc'))">Abrir</button></td>
     </tr>`).join('');
 }
 
 // ── Dashboard ─────────────────────────────────────────────────
+function limparFiltrosDash(){
+    document.getElementById('dash-de').value='';
+    document.getElementById('dash-ate').value='';
+    document.getElementById('dash-grav').value='';
+    document.getElementById('dash-reg').value='';
+    renderDash();
+}
 function renderDash(){
+    const de=document.getElementById('dash-de')?.value||'';
+    const ate=document.getElementById('dash-ate')?.value||'';
+    const gravF=document.getElementById('dash-grav')?.value||'';
+    const regF=document.getElementById('dash-reg')?.value||'';
+
+    let pids=ces.filter(c=>c.tipo==='PID');
+    if(de)pids=pids.filter(c=>c.data&&c.data>=de);
+    if(ate)pids=pids.filter(c=>c.data&&c.data<=ate);
+    if(gravF)pids=pids.filter(c=>c.gravidade===gravF);
+    if(regF)pids=pids.filter(c=>c.regime===regF);
+
+    const info=document.getElementById('dash-filtro-info');
+    if(info)info.textContent=pids.length+' processo(s) no período';
+
     const count=(arr,key)=>arr.reduce((a,c)=>{a[c[key]]=(a[c[key]]||0)+1;return a;},{});
-    const mkChart=(id,labels,data,type,colors)=>{
-        if(charts[id])charts[id].destroy();
-        const ctx=document.getElementById(id).getContext('2d');
-        charts[id]=new Chart(ctx,{type,data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:1}]},options:{plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}});
-    };
-    const pids=ces.filter(c=>c.tipo==='PID');
     const COLORS=['#2557a7','#b91c1c','#1a7a4a','#b45309','#6366f1','#ec4899','#14b8a6','#f59e0b'];
+
+    // ── KPIs ──────────────────────────────────────────────────
+    const concluidos=pids.filter(c=>c.situacao==='CONCLUÍDO');
+    const pendentes=pids.filter(c=>c.situacao==='PENDENTE');
+    const atrasados=pendentes.filter(c=>dias(c.data)>30);
+    const semCitacao=pids.filter(c=>c.tipo==='PID'&&!(c.steps&&c.steps['citacao_step']));
+    const comFunap=pids.filter(c=>c.citacao&&c.citacao.includes('FUNAP'));
+    const comPart=pids.filter(c=>c.citacao&&c.citacao.includes('PART'));
+    const semAdv=pids.filter(c=>!c.citacao);
+
+    // Média de tempo de conclusão
+    const tempos=concluidos.filter(c=>c.data&&c.dt_conc).map(c=>{
+        const ini=new Date(c.data);
+        const fim=new Date(c.dt_conc);
+        return Math.round((fim-ini)/86400000);
+    }).filter(t=>t>0);
+    const mediaDias=tempos.length?Math.round(tempos.reduce((a,b)=>a+b,0)/tempos.length):null;
+
+    const kpisEl=document.getElementById('dash-kpis');
+    if(kpisEl){
+        const kpis=[
+            {label:'Total PIDs',val:pids.length,color:'#1a2744'},
+            {label:'Pendentes',val:pendentes.length,color:'#b91c1c'},
+            {label:'Concluídos',val:concluidos.length,color:'#1a7a4a'},
+            {label:'Atrasados +30d',val:atrasados.length,color:'#b91c1c'},
+            {label:'Pend. Citação',val:semCitacao.length,color:'#b45309'},
+            {label:'Adv. FUNAP',val:comFunap.length,color:'#2557a7'},
+            {label:'Adv. Particular',val:comPart.length,color:'#6366f1'},
+            {label:'Sem Advogado',val:semAdv.length,color:'#94a3b8'},
+            {label:'Média Conclusão',val:mediaDias!==null?mediaDias+'d':'—',color:'#1a7a4a'},
+        ];
+        kpisEl.innerHTML=kpis.map(k=>`<div style="flex:1;background:#fff;padding:8px 10px;text-align:center">
+            <div style="font-size:18px;font-weight:800;color:${k.color}">${k.val}</div>
+            <div style="font-size:9px;color:#94a3b8;font-weight:600;text-transform:uppercase;margin-top:1px">${k.label}</div>
+        </div>`).join('');
+    }
+
+    const mkChart=(id,labels,data,type,colors,opts)=>{
+        if(charts[id])charts[id].destroy();
+        const el=document.getElementById(id);
+        if(!el)return;
+        const ctx=el.getContext('2d');
+        charts[id]=new Chart(ctx,{type,data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:1}]},
+            options:{plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10}}},
+            scales:type==='bar'?{y:{ticks:{font:{size:10}}},x:{ticks:{font:{size:9}}}}:{},
+            ...opts}});
+    };
+
+    // Gráficos
     const nat=count(pids,'natureza');
-    mkChart('ch-nat',Object.keys(nat),Object.values(nat),'bar',COLORS);
+    const natSorted=Object.entries(nat).sort((a,b)=>b[1]-a[1]);
+    mkChart('ch-nat',natSorted.map(e=>e[0]),natSorted.map(e=>e[1]),'bar',COLORS);
+
     const grav=count(pids,'gravidade');
     mkChart('ch-grav',Object.keys(grav),Object.values(grav),'doughnut',['#b91c1c','#b45309','#1a7a4a']);
+
     const sit=count(pids,'situacao');
     mkChart('ch-sit',Object.keys(sit),Object.values(sit),'doughnut',COLORS);
+
     const reg=count(pids,'regime');
     mkChart('ch-reg',Object.keys(reg),Object.values(reg),'bar',COLORS);
+
+    // Defesa: FUNAP vs Particular vs Ambos vs Sem
+    const ambos=pids.filter(c=>c.citacao&&c.citacao.includes('FUNAP')&&c.citacao.includes('PART')).length;
+    const soFunap=comFunap.length-ambos;
+    const soPart=comPart.length-ambos;
+    mkChart('ch-cit',
+        ['Só FUNAP','Só Particular','Ambos','Sem advogado'],
+        [soFunap,soPart,ambos,semAdv.length],
+        'doughnut',['#2557a7','#6366f1','#1a7a4a','#cbd5e1']);
+
+    // Localização
+    const naUp=pids.filter(c=>c.localizacao==='NA UP').length;
+    const transf=pids.filter(c=>c.localizacao==='TRANSFERIDO').length;
+    const semLoc=pids.length-naUp-transf;
+    mkChart('ch-loc',
+        ['Na UP','Transferido','Não informado'],
+        [naUp,transf,semLoc],
+        'doughnut',['#1d4ed8','#b45309','#cbd5e1']);
 }
 
 
