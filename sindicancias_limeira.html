@@ -147,6 +147,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .toast.info{background:#2557a7}
 /* ── Syn bar ── */
 .syn{font-size:10px;color:rgba(255,255,255,.6);}
+/* ── Checkbox seleção ── */
+.ci-check{width:16px;height:16px;cursor:pointer;flex-shrink:0;accent-color:#2557a7;margin-right:6px}
+.ci-wrap{display:flex;align-items:flex-start;gap:0}
+/* ── Barra de lote ── */
+.lote-bar{background:#1a2744;color:#fff;padding:8px 12px;display:none;align-items:center;gap:10px;font-size:12px;border-bottom:2px solid #2557a7}
+.lote-bar.active{display:flex}
+.lote-count{font-weight:700;font-size:13px}
+/* ── Modal servidores ── */
+.srv-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:12px}
+.srv-item:last-child{border-bottom:none}
 /* ── Modal Conclusão ── */
 .concl-mo{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:150;display:none;align-items:center;justify-content:center}
 .concl-mo.open{display:flex}
@@ -187,6 +197,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 <div class="page active" id="page-proc">
   <div class="proc-wrap">
     <div class="lista">
+      <div class="lote-bar" id="lote-bar">
+        <span class="lote-count" id="lote-count">0</span> selecionado(s)
+        <button class="btn" style="background:#fef9c3;color:#92400e;font-size:11px;padding:4px 12px;margin-left:4px" onclick="gerarCitacaoLote()">📄 Gerar Citação</button>
+        <button class="btn" style="background:#fee2e2;color:#b91c1c;font-size:11px;padding:4px 10px;margin-left:auto" onclick="limparSelecao()">✕ Cancelar</button>
+      </div>
       <div class="lista-top">
         <input class="search" id="srch" placeholder="🔍 Buscar CE, nome, SEI..." oninput="renderList()">
         <div class="filters">
@@ -392,6 +407,43 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   </div>
 </div>
 
+<!-- Modal Citação -->
+<div class="mo" id="cit-modal" style="display:none" onclick="if(event.target===this)document.getElementById('cit-modal').style.display='none'">
+  <div class="mo-box" style="width:640px">
+    <div class="mo-title">📄 Gerar Citação</div>
+    <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:12px">
+      <div class="fg" style="flex:1;margin:0">
+        <label>Autoridade Apuradora</label>
+        <select id="cit-autoridade" style="border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:13px;width:100%">
+          <option value="">— Selecione —</option>
+        </select>
+      </div>
+      <button class="btn" style="background:#e2e8f0;color:#475569;font-size:11px;padding:8px 12px;white-space:nowrap" onclick="openModalServidores()">⚙ Gerenciar</button>
+    </div>
+    <div style="font-size:11px;color:#64748b;margin-bottom:8px" id="cit-lista-info"></div>
+    <div id="cit-preview" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;font-size:11px;color:#1e293b;max-height:260px;overflow-y:auto;line-height:1.7;display:none"></div>
+    <div class="mo-footer">
+      <button class="btn btn-grey" onclick="document.getElementById('cit-modal').style.display='none'">Cancelar</button>
+      <button class="btn btn-pr" onclick="confirmarGerarCitacao()">📥 Gerar PDF(s)</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Servidores -->
+<div class="mo" id="srv-modal" style="display:none" onclick="if(event.target===this)document.getElementById('srv-modal').style.display='none'">
+  <div class="mo-box" style="width:480px">
+    <div class="mo-title">⚙ Gerenciar Servidores</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <input id="srv-nome-input" style="flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:13px" placeholder="Nome do servidor (ex: JOSIMAR SALES)">
+      <button class="btn btn-pr" style="padding:8px 16px" onclick="adicionarServidor()">+ Adicionar</button>
+    </div>
+    <div id="srv-lista" style="border:1px solid #e2e8f0;border-radius:8px;min-height:60px;max-height:300px;overflow-y:auto;background:#fff"></div>
+    <div class="mo-footer">
+      <button class="btn btn-grey" onclick="document.getElementById('srv-modal').style.display='none'">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Conclusão -->
 <div class="concl-mo" id="concl-mo">
   <div class="mo-box" style="width:400px">
@@ -438,7 +490,7 @@ const PLANILHA=[{"id":"CE_01_00600022070_2026-05","nce":"01","tipo":"PID","sei":
 const SECS=[{"id": "cartorio", "label": "Lançamento no Cartório"}, {"id": "gepen", "label": "Lançamento no GEPEN"}, {"id": "sei_criar", "label": "Criação do processo no SEI"}, {"id": "folha_lider", "label": "Folha líder"}, {"id": "junta_ce", "label": "Juntada do Comunicado de Evento"}, {"id": "portaria", "label": "Portaria de instauração"}, {"id": "termo_inst", "label": "Termo de instalação"}, {"id": "termo_comp", "label": "Termo de compromisso"}, {"id": "desp_isol", "label": "Despacho de isolamento"}, {"id": "oficio_exec", "label": "Ofício para o processo de execução"}, {"id": "recibo", "label": "Juntada do recibo"}, {"id": "qualif", "label": "Qualificativa do preso"}, {"id": "decl_pol", "label": "Termo de declaração dos policiais"}, {"id": "citacao_step", "label": "Citação do preso"}, {"id": "decl_preso", "label": "Termo de declaração do preso"}, {"id": "defesa_adv", "label": "Defesa do advogado"}, {"id": "relatorio", "label": "Relatório conclusivo"}, {"id": "desp_dec", "label": "Despacho decisório"}, {"id": "oficio_juiz", "label": "Ofício de encerramento para o Juiz"}, {"id": "recibo_pet", "label": "Recibo de peticionamento"}, {"id": "encerrar", "label": "Encerramento do processo"}];
 const SEC_GROUPS=[{"title": "ABERTURA", "ids": ["cartorio", "gepen", "sei_criar"]}, {"title": "INSTRUÇÃO", "ids": ["folha_lider", "junta_ce", "portaria", "termo_inst", "termo_comp", "desp_isol", "oficio_exec", "recibo", "qualif", "decl_pol", "citacao_step", "decl_preso", "defesa_adv"]}, {"title": "CONCLUSÃO", "ids": ["relatorio", "desp_dec", "oficio_juiz", "recibo_pet", "encerrar"]}];
 
-let ces=[], selId=null, editId=null, charts={}, bootComplete=false;
+let ces=[], selId=null, editId=null, charts={}, bootComplete=false, selLote=new Set(), servidores=[];
 
 // ── Supabase API ───────────────────────────────────────────────
 async function sbFetch(path,method,body,extra){
@@ -479,6 +531,7 @@ async function boot(){
         setSyn('✓ Supabase — '+ces.length+' registros');
         bootComplete=true;
         renderAll();
+        loadServidores();
     }catch(e){
         setSyn('⚠ Erro de conexão');
         toast('Falha ao conectar: '+e.message,'err');
@@ -616,13 +669,20 @@ function renderList(){
             if(naUp)cStyle='background:#bfdbfe;border-left:3px solid #1d4ed8';
             else if(isTransf)cStyle='background:#fef9c3;border-left:3px solid #b45309';
         }
-        return `<div class="ci${isA(ce.id)?' active':''}"${cStyle?' style="'+cStyle+'"':''} onclick="selCE('${ce.id}')">
-            <div class="ci-nce">CE ${ce.nce}</div>
-            <div class="ci-nome">${ce.sindicado}</div>
-            <div class="ci-nat">${ce.natureza||'—'}</div>
-            ${pbar}
-            <div class="ci-bottom"><span class="ci-prog">${p?p.done+'/21 etapas':'AP'}</span><span class="ci-pct">${pctStr}</span></div>
-            <div class="badges">${bs}</div>
+        const semCitacao=ce.tipo==='PID'&&!(ce.steps&&ce.steps['citacao_step']);
+        const isSelected=selLote.has(ce.id);
+        return `<div class="ci${isA(ce.id)?' active':isSelected?' active':''}" style="${isSelected?'background:#eff6ff;border-left:3px solid #2557a7':(cStyle||'')}">
+            <div class="ci-wrap">
+              <input type="checkbox" class="ci-check" ${isSelected?'checked':''} onclick="event.stopPropagation();toggleLote('${ce.id}')" title="Selecionar para citação em lote">
+              <div style="flex:1;min-width:0" onclick="selCE('${ce.id}')">
+                <div class="ci-nce">CE ${ce.nce}</div>
+                <div class="ci-nome">${ce.sindicado}</div>
+                <div class="ci-nat">${ce.natureza||'—'}</div>
+                ${pbar}
+                <div class="ci-bottom"><span class="ci-prog">${p?p.done+'/21 etapas':'AP'}</span><span class="ci-pct">${pctStr}</span></div>
+                <div class="badges">${bs}</div>
+              </div>
+            </div>
         </div>`;
     }).join('');
 }
@@ -683,6 +743,7 @@ function renderDetail(){
         <div class="det-actions">
             <button class="btn btn-ok" onclick="abrirConclusao('${ce.id}')">✓ Concluído</button>
             <button class="btn btn-ed" onclick="openModal('${ce.id}')">✎ Editar</button>
+            ${ce.tipo==='PID'&&!(ce.steps&&ce.steps['citacao_step'])?`<button class="btn" style="background:#fef9c3;color:#92400e" onclick="abrirCitacaoSingle('${ce.id}')">📄 Citação</button>`:''}
             <button class="btn btn-del" onclick="delCE('${ce.id}')">✕ Excluir</button>
         </div>
     </div>
@@ -975,6 +1036,208 @@ function renderDash(){
     mkChart('ch-sit',Object.keys(sit),Object.values(sit),'doughnut',COLORS);
     const reg=count(pids,'regime');
     mkChart('ch-reg',Object.keys(reg),Object.values(reg),'bar',COLORS);
+}
+
+
+// ══════════════════════════════════════════════════════════════════════
+// SERVIDORES — Supabase tabela 'servidores'
+// ══════════════════════════════════════════════════════════════════════
+async function loadServidores(){
+    try{
+        const rows=await sbFetch('servidores?select=id,nome&order=nome.asc');
+        servidores=rows||[];
+        const sel=document.getElementById('cit-autoridade');
+        if(sel){
+            const cur=sel.value;
+            sel.innerHTML='<option value="">— Selecione —</option>'+servidores.map(s=>`<option value="${s.nome}">${s.nome}</option>`).join('');
+            if(cur)sel.value=cur;
+        }
+        renderListaServidores();
+    }catch(e){console.warn('Servidores não carregados:',e.message);}
+}
+function renderListaServidores(){
+    const el=document.getElementById('srv-lista');
+    if(!el)return;
+    if(!servidores.length){el.innerHTML='<div style="padding:12px;color:#94a3b8;font-size:12px;text-align:center">Nenhum servidor cadastrado</div>';return;}
+    el.innerHTML=servidores.map(s=>`<div class="srv-item">
+        <span style="font-weight:600">${s.nome}</span>
+        <button class="btn" style="background:#fee2e2;color:#b91c1c;font-size:10px;padding:2px 8px" onclick="removerServidor(${s.id},'${s.nome.replace(/'/g,"\\'")}')">✕</button>
+    </div>`).join('');
+}
+function openModalServidores(){
+    document.getElementById('srv-modal').style.display='flex';
+    loadServidores();
+}
+async function adicionarServidor(){
+    const nome=document.getElementById('srv-nome-input').value.trim().toUpperCase();
+    if(!nome){toast('Informe o nome do servidor.','err');return;}
+    if(servidores.find(s=>s.nome===nome)){toast('Servidor já cadastrado.','err');return;}
+    try{
+        await sbFetch('servidores','POST',[{nome}],{'Prefer':'return=minimal'});
+        document.getElementById('srv-nome-input').value='';
+        await loadServidores();
+        toast('Servidor adicionado!','ok');
+    }catch(e){toast('Erro: '+e.message,'err');}
+}
+async function removerServidor(id,nome){
+    if(!confirm('Remover "'+nome+'"?'))return;
+    try{
+        await sbFetch('servidores?id=eq.'+id,'DELETE',undefined,{'Prefer':'return=minimal'});
+        await loadServidores();
+        toast('Removido.','ok');
+    }catch(e){toast('Erro: '+e.message,'err');}
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// SELEÇÃO EM LOTE
+// ══════════════════════════════════════════════════════════════════════
+function toggleLote(id){
+    if(selLote.has(id))selLote.delete(id);
+    else selLote.add(id);
+    atualizarBarraLote();
+    renderList();
+}
+function limparSelecao(){
+    selLote.clear();
+    atualizarBarraLote();
+    renderList();
+}
+function atualizarBarraLote(){
+    const bar=document.getElementById('lote-bar');
+    const count=document.getElementById('lote-count');
+    if(selLote.size>0){bar.classList.add('active');count.textContent=selLote.size;}
+    else bar.classList.remove('active');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// CITAÇÃO — abrir modal
+// ══════════════════════════════════════════════════════════════════════
+function abrirCitacaoSingle(id){
+    selLote.clear();
+    selLote.add(id);
+    atualizarBarraLote();
+    renderList();
+    abrirModalCitacao();
+}
+function gerarCitacaoLote(){
+    if(selLote.size===0){toast('Selecione ao menos um processo.','err');return;}
+    abrirModalCitacao();
+}
+function abrirModalCitacao(){
+    const ids=[...selLote];
+    const lista=ids.map(id=>ces.find(c=>c.id===id)).filter(Boolean);
+    // Carregar servidores
+    loadServidores();
+    // Info
+    const info=document.getElementById('cit-lista-info');
+    info.innerHTML='<strong>'+lista.length+'</strong> processo(s) selecionado(s): '+lista.map(c=>'CE '+c.nce+' — '+c.sindicado.split(' ').slice(0,2).join(' ')).join(', ');
+    // Preview do primeiro
+    const prev=document.getElementById('cit-preview');
+    if(lista.length>0){
+        prev.style.display='block';
+        prev.innerHTML=montarTextoCitacao(lista[0],'[AUTORIDADE APURADORA]').replace(/\n/g,'<br>');
+    }
+    document.getElementById('cit-modal').style.display='flex';
+    // Atualizar preview ao trocar autoridade
+    document.getElementById('cit-autoridade').onchange=function(){
+        if(lista.length>0)prev.innerHTML=montarTextoCitacao(lista[0],this.value||'[AUTORIDADE APURADORA]').replace(/\n/g,'<br>');
+    };
+}
+function montarTextoCitacao(ce,autoridade){
+    const hoje=new Date();
+    const meses=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    const dataExtenso=hoje.getDate()+' de '+meses[hoje.getMonth()]+' de '+hoje.getFullYear()+'.';
+    return `C I T A Ç Ã O
+PROCEDIMENTO INVESTIGATIVO DISCIPLINAR
+PENITENCIARIA DE LIMEIRA - C.E ${String(ce.nce).padStart(4,'0')}/2026
+
+Sindicado: ${ce.sindicado}
+Matrícula: ${ce.matricula}
+Nº do Processo SEI: ${ce.sei}
+
+Na qualidade de Autoridade apuradora, em atendimento ao disposto no artigo 64, inciso II, do Regimento Interno Padrão das Unidades Prisionais do Estado (RIP), fica o detento acima indicado ciente da apuração que, em tese, teria praticado falta disciplinar.
+
+É assegurado ao sindicado o direito ao contraditório e a ampla defesa, através de advogado constituído ou advogado da FUNAP que acompanhará todos os atos do Procedimento Administrativo Disciplinar.
+
+Esclarecido do teor acima, o sindicado opta por:
+
+(_) Advogado constituído
+Nome____________________________________Contato_______________
+
+(_) Advogado da FUNAP
+
+Limeira, ${dataExtenso}
+
+${autoridade}
+Autoridade Apuradora
+
+Ciente: __________________________________________________
+Sindicado: ${ce.sindicado}
+Matrícula: ${ce.matricula}`;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// GERAÇÃO DE PDF — via janela de impressão HTML
+// ══════════════════════════════════════════════════════════════════════
+function confirmarGerarCitacao(){
+    const autoridade=document.getElementById('cit-autoridade').value;
+    if(!autoridade){toast('Selecione a Autoridade Apuradora.','err');return;}
+    const ids=[...selLote];
+    const lista=ids.map(id=>ces.find(c=>c.id===id)).filter(Boolean);
+    if(!lista.length){toast('Nenhum processo válido selecionado.','err');return;}
+    document.getElementById('cit-modal').style.display='none';
+    // Montar HTML de impressão com uma citação por página
+    const pagesHtml=lista.map((ce,i)=>`
+        <div style="page-break-after:${i<lista.length-1?'always':'avoid'};padding:2cm;font-family:Arial,sans-serif;font-size:12pt;line-height:1.8">
+            <p style="text-align:center;font-weight:bold;font-size:14pt;letter-spacing:4px">C I T A Ç Ã O</p>
+            <p style="text-align:center;font-weight:bold">PROCEDIMENTO INVESTIGATIVO DISCIPLINAR<br>
+            PENITENCIARIA DE LIMEIRA - C.E ${String(ce.nce).padStart(4,'0')}/2026</p>
+            <br>
+            <p><strong>Sindicado:</strong> ${ce.sindicado}</p>
+            <p><strong>Matrícula:</strong> ${ce.matricula}</p>
+            <p><strong>Nº do Processo SEI:</strong> ${ce.sei}</p>
+            <br>
+            <p style="text-align:justify">Na qualidade de Autoridade apuradora, em atendimento ao disposto no artigo 64, inciso II, do Regimento Interno Padrão das Unidades Prisionais do Estado (RIP), fica o detento acima indicado ciente da apuração que, em tese, teria praticado falta disciplinar.</p>
+            <br>
+            <p style="text-align:justify">É assegurado ao sindicado o direito ao contraditório e a ampla defesa, através de advogado constituído ou advogado da FUNAP que acompanhará todos os atos do Procedimento Administrativo Disciplinar.</p>
+            <br>
+            <p>Esclarecido do teor acima, o sindicado opta por:</p>
+            <br>
+            <p>(_) Advogado constituído</p>
+            <p>Nome____________________________________Contato_______________</p>
+            <br>
+            <p>(_) Advogado da FUNAP</p>
+            <br><br>
+            <p>Limeira, ${(()=>{const d=new Date();const m=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];return d.getDate()+' de '+m[d.getMonth()]+' de '+d.getFullYear()+'.'})()}</p>
+            <br><br>
+            <p><strong>${autoridade}</strong><br>Autoridade Apuradora</p>
+            <br><br>
+            <p>Ciente: __________________________________________________</p>
+            <p><strong>Sindicado:</strong> ${ce.sindicado}</p>
+            <p><strong>Matrícula:</strong> ${ce.matricula}</p>
+            <p><strong>Nº do Processo SEI:</strong> ${ce.sei}</p>
+        </div>`).join('');
+    const w=window.open('','_blank');
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Citações</title>
+    <style>@page{size:A4;margin:0}body{margin:0}@media print{.no-print{display:none}}</style></head>
+    <body>
+    <div class="no-print" style="position:fixed;top:0;left:0;right:0;background:#1a2744;color:#fff;padding:10px 20px;display:flex;gap:10px;align-items:center;z-index:999">
+        <span style="font-weight:700">📄 ${lista.length} citação(ões) prontas</span>
+        <button onclick="window.print()" style="background:#2557a7;color:#fff;border:none;border-radius:6px;padding:6px 16px;font-size:12px;cursor:pointer;font-weight:700">🖨 Imprimir / Salvar PDF</button>
+        <button onclick="window.close()" style="background:#fee2e2;color:#b91c1c;border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer">✕ Fechar</button>
+    </div>
+    <div style="padding-top:50px">${pagesHtml}</div>
+    </body></html>`);
+    w.document.close();
+    // Marcar citacao_step como feito para cada processo
+    lista.forEach(async ce=>{
+        if(!ce.steps)ce.steps={};
+        ce.steps['citacao_step']=true;
+        await saveCE(ce);
+    });
+    renderAll();
+    limparSelecao();
+    toast(lista.length+' citação(ões) gerada(s)!','ok');
 }
 
 document.addEventListener('DOMContentLoaded',boot);
