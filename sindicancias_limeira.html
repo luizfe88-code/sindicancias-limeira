@@ -319,6 +319,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
       <select id="cit-f-grav" onchange="renderCitacoes()" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;background:#fff">
         <option value="">Todas gravidades</option>
         <option>GRAVE</option><option>MÉDIA</option><option>LEVE</option>
+        <option>ARQUIVAMENTO</option><option>SINDICÂNCIA</option><option>PAD</option>
       </select>
       <select id="cit-f-loc" onchange="citLocChange()" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;background:#fff">
         <option value="">Localização</option>
@@ -370,7 +371,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
       <span style="font-size:11px;color:#94a3b8">até</span>
       <input type="date" id="dash-ate" onchange="renderDash()" style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:11px">
       <select id="dash-grav" onchange="renderDash()" style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:11px;background:#fff">
-        <option value="">Todas gravidades</option><option>GRAVE</option><option>MÉDIA</option><option>LEVE</option>
+        <option value="">Todas gravidades</option><option>GRAVE</option><option>MÉDIA</option><option>LEVE</option><option>ARQUIVAMENTO</option><option>SINDICÂNCIA</option><option>PAD</option>
       </select>
       <select id="dash-reg" onchange="renderDash()" style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:11px;background:#fff">
         <option value="">Todos regimes</option><option value="FE">FE</option><option value="RSA">RSA</option><option value="SA">SA</option>
@@ -413,7 +414,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
     </div>
     <div class="g3">
       <div class="fg"><label>Data do CE</label><input id="f-data" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)"></div>
-      <div class="fg"><label>Gravidade</label><select id="f-grav"><option value="">—</option><option value="LEVE">LEVE</option><option value="MÉDIA">MÉDIA</option><option value="GRAVE">GRAVE</option></select></div>
+      <div class="fg"><label>Gravidade</label><select id="f-grav"><option value="">—</option><option value="LEVE">LEVE</option><option value="MÉDIA">MÉDIA</option><option value="GRAVE">GRAVE</option><option value="ARQUIVAMENTO">ARQUIVAMENTO</option><option value="SINDICÂNCIA">SINDICÂNCIA</option><option value="PAD">PAD</option></select></div>
       <div class="fg"><label>Situação</label><select id="f-sit-m"><option value="PENDENTE">PENDENTE</option><option value="CONCLUÍDO">CONCLUÍDO</option><option value="SOBRESTADO">SOBRESTADO</option><option value="ARQUIVADO">ARQUIVADO</option><option value="ABSOLVIDO">ABSOLVIDO</option></select></div>
     </div>
     <div class="fg"><label>Processo de Execução</label><input id="f-exec"></div>
@@ -474,7 +475,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   <div class="mo-box" style="width:400px">
     <div class="mo-title">Concluir Processo</div>
     <div class="fg"><label>Data de Conclusão</label><input id="concl-dt" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)"></div>
-    <div class="fg"><label>Gravidade Final</label><select id="concl-grav"><option value="">—</option><option value="LEVE">LEVE</option><option value="MÉDIA">MÉDIA</option><option value="GRAVE">GRAVE</option></select></div>
+    <div class="fg"><label>Gravidade Final</label><select id="concl-grav"><option value="">—</option><option value="LEVE">LEVE</option><option value="MÉDIA">MÉDIA</option><option value="GRAVE">GRAVE</option><option value="ARQUIVAMENTO">ARQUIVAMENTO</option><option value="SINDICÂNCIA">SINDICÂNCIA</option><option value="PAD">PAD</option></select></div>
     <div class="mo-footer">
       <button class="btn btn-grey" onclick="document.getElementById('concl-mo').classList.remove('open')">Cancelar</button>
       <button class="btn btn-pr" onclick="confirmarConclusao()">Confirmar</button>
@@ -628,7 +629,7 @@ function getNextStepLabel(ce){
     return'✓ Concluído';
 }
 function calcScore(ce){
-    const gv={'GRAVE':100,'MÉDIA':50,'LEVE':10}[ce.gravidade]||0;
+    const gv={'GRAVE':100,'MÉDIA':50,'LEVE':10,'SINDICÂNCIA':80,'PAD':90,'ARQUIVAMENTO':5}[ce.gravidade]||0;
     const p=prog(ce);
     const missing=p?(100-p.pct):100;
     return gv+dias(ce.data)*0.5+missing;
@@ -966,7 +967,7 @@ function renderRank(){
             <td><div class="rank-num" style="background:${col}">${i+1}</div></td>
             <td><strong>CE ${ce.nce}</strong>${locBadge}<br><small style="color:#64748b">${ce.sindicado}${ce.matricula?' — '+ce.matricula:''}</small></td>
             <td>${ce.natureza||'—'}</td>
-            <td style="color:${ce.gravidade==='GRAVE'?'#b91c1c':ce.gravidade==='MÉDIA'?'#b45309':'#1a7a4a'};font-weight:700">${ce.gravidade||'—'}</td>
+            <td style="color:${ce.gravidade==='GRAVE'?'#b91c1c':ce.gravidade==='MÉDIA'?'#b45309':ce.gravidade==='LEVE'?'#1a7a4a':ce.gravidade==='PAD'?'#6366f1':ce.gravidade==='SINDICÂNCIA'?'#0891b2':'#94a3b8'};font-weight:700">${ce.gravidade||'—'}</td>
             <td style="color:${d>30?'#b91c1c':d>15?'#b45309':'#1a7a4a'};font-weight:600">${d}d</td>
             <td style="font-size:11px">${locCol}</td>
             <td style="font-size:11px;color:#475569">${nxtStep}</td>
@@ -1150,12 +1151,12 @@ function renderCitacoes(){
     if(loc)list=list.filter(c=>c.localizacao===loc);
     if(ud)list=list.filter(c=>c.unidade_destino===ud);
     if(q)list=list.filter(c=>(c.nce+' '+c.sindicado+' '+c.sei+' '+c.natureza).toLowerCase().includes(q));
-    list.sort((a,b)=>{const gv={GRAVE:0,MÉDIA:1,LEVE:2};return (gv[a.gravidade]??3)-(gv[b.gravidade]??3)||dias(b.data)-dias(a.data);});
+    list.sort((a,b)=>{const gv={GRAVE:0,PAD:1,SINDICÂNCIA:2,MÉDIA:3,LEVE:4,ARQUIVAMENTO:5};return (gv[a.gravidade]??6)-(gv[b.gravidade]??6)||dias(b.data)-dias(a.data);});
     const total=document.getElementById('cit-total');
     if(total)total.textContent=list.length+' processo(s) pendente(s) de citação';
     const tbody=document.getElementById('cit-tbody');if(!tbody)return;
     if(!list.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:#94a3b8;font-size:12px">✓ Nenhum processo pendente de citação</td></tr>';return;}
-    const gravCol={GRAVE:'#b91c1c',MÉDIA:'#b45309',LEVE:'#1a7a4a'};
+    const gravCol={GRAVE:'#b91c1c',MÉDIA:'#b45309',LEVE:'#1a7a4a',PAD:'#6366f1',SINDICÂNCIA:'#0891b2',ARQUIVAMENTO:'#94a3b8'};
     tbody.innerHTML=list.map(ce=>{
         const d=dias(ce.data);
         const isNaUp=ce.localizacao==='NA UP';const isTransf=ce.localizacao==='TRANSFERIDO';
