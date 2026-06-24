@@ -197,6 +197,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
             <option value="">Todas situações</option>
             <option>PENDENTE</option><option>CONCLUÍDO</option><option>SOBRESTADO</option>
             <option>ARQUIVADO</option><option>ABSOLVIDO</option>
+            <option>SINDICÂNCIA</option><option>PAD</option>
           </select>
           <select id="f-tipo" onchange="renderList()">
             <option value="">PID + AP</option>
@@ -415,7 +416,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
     <div class="g3">
       <div class="fg"><label>Data do CE</label><input id="f-data" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)"></div>
       <div class="fg"><label>Gravidade</label><select id="f-grav"><option value="">—</option><option value="LEVE">LEVE</option><option value="MÉDIA">MÉDIA</option><option value="GRAVE">GRAVE</option><option value="ARQUIVAMENTO">ARQUIVAMENTO</option><option value="SINDICÂNCIA">SINDICÂNCIA</option><option value="PAD">PAD</option></select></div>
-      <div class="fg"><label>Situação</label><select id="f-sit-m"><option value="PENDENTE">PENDENTE</option><option value="CONCLUÍDO">CONCLUÍDO</option><option value="SOBRESTADO">SOBRESTADO</option><option value="ARQUIVADO">ARQUIVADO</option><option value="ABSOLVIDO">ABSOLVIDO</option></select></div>
+      <div class="fg"><label>Situação</label><select id="f-sit-m"><option value="PENDENTE">PENDENTE</option><option value="CONCLUÍDO">CONCLUÍDO</option><option value="SOBRESTADO">SOBRESTADO</option><option value="ARQUIVADO">ARQUIVADO</option><option value="ABSOLVIDO">ABSOLVIDO</option><option value="SINDICÂNCIA">SINDICÂNCIA</option><option value="PAD">PAD</option></select></div>
     </div>
     <div class="fg"><label>Processo de Execução</label><input id="f-exec"></div>
     <div class="g3">
@@ -475,6 +476,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   <div class="mo-box" style="width:400px">
     <div class="mo-title">Concluir Processo</div>
     <div class="fg"><label>Data de Conclusão</label><input id="concl-dt" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)"></div>
+    <div class="fg"><label>Situação Final</label><select id="concl-sit"><option value="CONCLUÍDO">CONCLUÍDO</option><option value="ARQUIVADO">ARQUIVADO</option><option value="ABSOLVIDO">ABSOLVIDO</option><option value="SOBRESTADO">SOBRESTADO</option><option value="SINDICÂNCIA">SINDICÂNCIA</option><option value="PAD">PAD</option></select></div>
     <div class="fg"><label>Gravidade Final</label><select id="concl-grav"><option value="">—</option><option value="LEVE">LEVE</option><option value="MÉDIA">MÉDIA</option><option value="GRAVE">GRAVE</option><option value="ARQUIVAMENTO">ARQUIVAMENTO</option><option value="SINDICÂNCIA">SINDICÂNCIA</option><option value="PAD">PAD</option></select></div>
     <div class="mo-footer">
       <button class="btn btn-grey" onclick="document.getElementById('concl-mo').classList.remove('open')">Cancelar</button>
@@ -802,7 +804,8 @@ async function confirmarConclusao(){
     document.getElementById('concl-mo').classList.remove('open');
     const ce=ces.find(c=>c.id===id);
     if(!ce)return;
-    ce.situacao='CONCLUÍDO';ce.dt_conc=dt;ce.gravidade=grav;
+    const sit=document.getElementById('concl-sit')?.value||'CONCLUÍDO';
+    ce.situacao=sit;ce.dt_conc=dt;ce.gravidade=grav;
     SECS.forEach(s=>{ce.steps[s.id]=true;});
     renderAll();await saveCE(ce);toast('Processo concluído!','ok');
 }
