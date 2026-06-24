@@ -162,8 +162,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   <div>
     <h1>Penitenciária de Limeira<small>Sistema de Controle de Sindicâncias</small></h1>
   </div>
-  <div class="topbar-right">
+  <div class="topbar-right" style="display:flex;align-items:center;gap:10px">
     <span class="syn" id="syn">Conectando...</span>
+    <span id="user-nome" style="font-size:11px;color:rgba(255,255,255,.8);font-weight:600"></span>
+    <button onclick="fazerLogout()" id="btn-logout" style="display:none;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer">Sair</button>
     <button class="btn-new" onclick="openModal()">+ Novo CE</button>
   </div>
 </div>
@@ -174,6 +176,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   <div class="tab" id="tab-rank" onclick="showPage('rank',this)">🎯 Prioridades</div>
   <div class="tab" id="tab-apr" onclick="showPage('apr',this)">📦 Apreensões</div>
   <div class="tab" id="tab-cit" onclick="showPage('cit',this)">📄 Citações</div>
+  <div class="tab" id="tab-log" onclick="showPage('log',this)" style="display:none">📋 Log</div>
   <div class="tab" id="tab-dash" onclick="showPage('dash',this)">📊 Dashboard</div>
 </div>
 
@@ -313,6 +316,30 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 </div>
 
 <!-- Página Dashboard -->
+<!-- Página Log -->
+<div class="page" id="page-log">
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:10px 16px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select id="log-f-acao" onchange="renderLog()" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;background:#fff">
+        <option value="">Todas as ações</option>
+        <option value="CRIAR">Criar</option><option value="EDITAR">Editar</option>
+        <option value="CONCLUIR">Concluir</option><option value="EXCLUIR">Excluir</option>
+        <option value="CITAÇÃO">Citação</option>
+      </select>
+      <select id="log-f-user" onchange="renderLog()" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;background:#fff">
+        <option value="">Todos os usuários</option>
+      </select>
+      <input type="date" id="log-f-de" onchange="renderLog()" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px;font-size:12px">
+      <input type="date" id="log-f-ate" onchange="renderLog()" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px;font-size:12px">
+      <button class="btn" style="background:#e2e8f0;color:#475569;font-size:11px;padding:5px 10px" onclick="limparFiltrosLog()">✕ Limpar</button>
+      <span id="log-total" style="font-size:11px;color:#94a3b8;margin-left:4px"></span>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:12px 16px">
+      <div id="log-corpo" style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Página Citações -->
 <div class="page" id="page-cit">
   <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
@@ -519,6 +546,7 @@ const SECS=[{"id": "cartorio", "label": "Lançamento no Cartório"}, {"id": "gep
 const SEC_GROUPS=[{"title": "ABERTURA", "ids": ["cartorio", "gepen", "sei_criar"]}, {"title": "INSTRUÇÃO", "ids": ["folha_lider", "junta_ce", "portaria", "termo_inst", "termo_comp", "desp_isol", "oficio_exec", "recibo", "qualif", "decl_pol", "citacao_step", "decl_preso", "defesa_adv"]}, {"title": "CONCLUSÃO", "ids": ["relatorio", "desp_dec", "oficio_juiz", "recibo_pet", "encerrar"]}];
 
 let ces=[], selId=null, editId=null, charts={}, bootComplete=false, selCitPagina=new Set(), servidores=[];
+let _usuario=null; // usuário logado
 
 // ── Supabase API ───────────────────────────────────────────────
 async function sbFetch(path,method,body,extra){
@@ -807,7 +835,7 @@ async function confirmarConclusao(){
     const sit=document.getElementById('concl-sit')?.value||'CONCLUÍDO';
     ce.situacao=sit;ce.dt_conc=dt;ce.gravidade=grav;
     SECS.forEach(s=>{ce.steps[s.id]=true;});
-    renderAll();await saveCE(ce);toast('Processo concluído!','ok');
+    renderAll();await saveCE(ce);await registrarLog('CONCLUIR',ce,'Situação: '+ce.situacao);toast('Processo concluído!','ok');
 }
 
 // ── Reabrir ───────────────────────────────────────────────────
@@ -824,7 +852,9 @@ async function delCE(id){
     if(!confirm('Remover este CE?'))return;
     showOvl('Excluindo...');
     try{
+        const ceDel=ces.find(c=>c.id===id);
         await sbDel(id);
+        if(ceDel)await registrarLog('EXCLUIR',ceDel,'Processo excluído');
         ces=ces.filter(c=>c.id!==id);
         if(selId===id)selId=null;
         renderAll();toast('CE excluído','ok');
@@ -1212,6 +1242,7 @@ function gerarCitacaoPagina(){
     const lista=[...selCitPagina].map(id=>ces.find(c=>c.id===id)).filter(Boolean);
     if(!lista.length){toast('Selecione ao menos um processo.','err');return;}
     gerarPDFCitacoes(lista,autoridade);
+    lista.forEach(ce=>registrarLog('CITAÇÃO',ce,'Citação — Autoridade: '+autoridade));
     limparSelCitPagina();
     toast(lista.length+' citação(ões) gerada(s)! Marque a citação manualmente no checklist de cada processo.','ok');
 }
@@ -1262,7 +1293,118 @@ function gerarPDFCitacoes(lista,autoridade){
     w.document.close();
 }
 
-document.addEventListener('DOMContentLoaded',boot);
+
+// ══════════════════════════════════════════════════════════════════════
+// AUTENTICAÇÃO
+// ══════════════════════════════════════════════════════════════════════
+function usuarioLogado(){return _usuario;}
+
+async function hashSenha(senha){
+    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(senha));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function fazerLogin(){
+    const login=document.getElementById('login-user').value.trim().toLowerCase();
+    const senha=document.getElementById('login-pass').value;
+    const err=document.getElementById('login-err');
+    if(!login||!senha){err.textContent='Preencha usuário e senha.';return;}
+    err.textContent='Verificando...';
+    try{
+        const hash=await hashSenha(senha);
+        const rows=await sbFetch('usuarios?login=eq.'+encodeURIComponent(login)+'&select=id,nome,login,perfil,senha_hash');
+        if(!rows||!rows.length||rows[0].senha_hash!==hash){
+            err.textContent='Usuário ou senha incorretos.';return;
+        }
+        _usuario={id:rows[0].id,nome:rows[0].nome,login:rows[0].login,perfil:rows[0].perfil};
+        localStorage.setItem('sinc_user',JSON.stringify(_usuario));
+        aplicarLoginSucesso();
+    }catch(e){err.textContent='Erro de conexão: '+e.message;}
+}
+
+function aplicarLoginSucesso(){
+    document.getElementById('login-page').style.display='none';
+    document.getElementById('user-nome').textContent=_usuario.nome;
+    document.getElementById('btn-logout').style.display='inline-block';
+    // Aba Log só aparece para admin
+    if(_usuario.perfil==='admin')document.getElementById('tab-log').style.display='inline-flex';
+    if(!bootComplete)boot();
+}
+
+function fazerLogout(){
+    localStorage.removeItem('sinc_user');
+    _usuario=null;
+    bootComplete=false;
+    document.getElementById('login-page').style.display='flex';
+    document.getElementById('login-user').value='';
+    document.getElementById('login-pass').value='';
+    document.getElementById('login-err').textContent='';
+    document.getElementById('user-nome').textContent='';
+    document.getElementById('btn-logout').style.display='none';
+    document.getElementById('tab-log').style.display='none';
+}
+
+function verificarSessao(){
+    try{
+        const s=localStorage.getItem('sinc_user');
+        if(s){_usuario=JSON.parse(s);aplicarLoginSucesso();}
+        else{document.getElementById('login-page').style.display='flex';}
+    }catch(e){document.getElementById('login-page').style.display='flex';}
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// LOG DE MOVIMENTAÇÕES
+// ══════════════════════════════════════════════════════════════════════
+let _logData=[];
+
+async function renderLog(){
+    const acao=document.getElementById('log-f-acao')?.value||'';
+    const user=document.getElementById('log-f-user')?.value||'';
+    const de=document.getElementById('log-f-de')?.value||'';
+    const ate=document.getElementById('log-f-ate')?.value||'';
+    const corpo=document.getElementById('log-corpo');
+    if(!corpo)return;
+    corpo.innerHTML='<div style="padding:16px;text-align:center;color:#94a3b8;font-size:12px">Carregando...</div>';
+    try{
+        let url='logs?order=criado_em.desc&limit=500';
+        if(acao)url+='&acao=eq.'+acao;
+        if(user)url+='&usuario=eq.'+encodeURIComponent(user);
+        if(de)url+='&criado_em=gte.'+de+'T00:00:00';
+        if(ate)url+='&criado_em=lte.'+ate+'T23:59:59';
+        const rows=await sbFetch(url)||[];
+        _logData=rows;
+        // Popular select de usuários
+        const sel=document.getElementById('log-f-user');
+        if(sel&&sel.options.length<=1){
+            const users=[...new Set(rows.map(r=>r.usuario))].sort();
+            users.forEach(u=>{const o=document.createElement('option');o.value=u;o.textContent=u;sel.appendChild(o);});
+        }
+        const total=document.getElementById('log-total');
+        if(total)total.textContent=rows.length+' registro(s)';
+        if(!rows.length){corpo.innerHTML='<div style="padding:24px;text-align:center;color:#94a3b8;font-size:12px">Nenhum registro encontrado</div>';return;}
+        const badgeClass={CRIAR:'log-criar',EDITAR:'log-editar',CONCLUIR:'log-concluir',EXCLUIR:'log-excluir','CITAÇÃO':'log-citacao'};
+        corpo.innerHTML=rows.map(r=>{
+            const dt=new Date(r.criado_em);
+            const dtStr=dt.toLocaleDateString('pt-BR')+' '+dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+            const bc=badgeClass[r.acao]||'log-editar';
+            return`<div class="log-row">
+                <span class="log-badge ${bc}">${r.acao}</span>
+                <span style="color:#1a2744;font-weight:600;min-width:90px">${r.ce_nce||'—'}</span>
+                <span style="color:#475569;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.sindicado||'—'}</span>
+                <span style="color:#64748b;min-width:120px">${r.detalhe||''}</span>
+                <span style="color:#94a3b8;min-width:110px;text-align:right">${r.usuario}</span>
+                <span style="color:#94a3b8;min-width:110px;text-align:right">${dtStr}</span>
+            </div>`;
+        }).join('');
+    }catch(e){corpo.innerHTML='<div style="padding:16px;color:#b91c1c;font-size:12px">Erro ao carregar log: '+e.message+'</div>';}
+}
+function limparFiltrosLog(){
+    ['log-f-acao','log-f-user'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    ['log-f-de','log-f-ate'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    renderLog();
+}
+
+document.addEventListener('DOMContentLoaded',verificarSessao);
 </script>
 </body>
 </html>
