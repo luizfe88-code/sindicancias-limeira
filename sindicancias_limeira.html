@@ -878,9 +878,12 @@ function openModal(id){
         document.getElementById('f-un').value=ce.unidade||'';
         document.getElementById('f-rein').value=ce.reincidente||'';
         document.getElementById('f-atv').value=ce.atividade||'';
-        document.getElementById('f-loc').value=ce.localizacao||'';
+        const locVal=ce.localizacao||'';
+        document.getElementById('f-loc-naup').checked=locVal==='NA UP';
+        document.getElementById('f-loc-transf').checked=locVal==='TRANSFERIDO';
+        document.getElementById('f-loc-none').checked=!locVal;
+        setLoc(locVal);
         document.getElementById('f-ud').value=ce.unidade_destino||'';
-        toggleUd();
         const cit=ce.citacao||'';
         document.getElementById('f-cit-funap').checked=cit.includes('FUNAP');
         document.getElementById('f-cit-part').checked=cit.includes('PART');
