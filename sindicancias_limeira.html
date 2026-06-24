@@ -163,7 +163,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
     <h1>Penitenciária de Limeira<small>Sistema de Controle de Sindicâncias</small></h1>
   </div>
   <div class="topbar-right" style="display:flex;align-items:center;gap:10px">
-    <span class="syn" id="syn">Conectando...</span>
+    <span class="syn" id="syn">Aguardando login...</span>
     <span id="user-nome" style="font-size:11px;color:rgba(255,255,255,.8);font-weight:600"></span>
     <button onclick="fazerLogout()" id="btn-logout" style="display:none;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer">Sair</button>
     <button class="btn-new" onclick="openModal()">+ Novo CE</button>
@@ -1309,26 +1309,32 @@ async function fazerLogin(){
     const senha=document.getElementById('login-pass').value;
     const err=document.getElementById('login-err');
     if(!login||!senha){err.textContent='Preencha usuário e senha.';return;}
-    err.textContent='Verificando...';
+    const btn=document.querySelector('.login-btn');
+    if(btn){btn.disabled=true;btn.textContent='Verificando...';}
+    err.textContent='';
     try{
         const hash=await hashSenha(senha);
         const rows=await sbFetch('usuarios?login=eq.'+encodeURIComponent(login)+'&select=id,nome,login,perfil,senha_hash');
         if(!rows||!rows.length||rows[0].senha_hash!==hash){
-            err.textContent='Usuário ou senha incorretos.';return;
+            err.textContent='Usuário ou senha incorretos.';
+            if(btn){btn.disabled=false;btn.textContent='Entrar';}
+            return;
         }
         _usuario={id:rows[0].id,nome:rows[0].nome,login:rows[0].login,perfil:rows[0].perfil};
         localStorage.setItem('sinc_user',JSON.stringify(_usuario));
         aplicarLoginSucesso();
-    }catch(e){err.textContent='Erro de conexão: '+e.message;}
+    }catch(e){err.textContent='Erro de conexão: '+e.message;const btn=document.querySelector('.login-btn');if(btn){btn.disabled=false;btn.textContent='Entrar';}}
 }
 
 function aplicarLoginSucesso(){
     document.getElementById('login-page').style.display='none';
     document.getElementById('user-nome').textContent=_usuario.nome;
     document.getElementById('btn-logout').style.display='inline-block';
-    // Aba Log só aparece para admin
     if(_usuario.perfil==='admin')document.getElementById('tab-log').style.display='inline-flex';
-    if(!bootComplete)boot();
+    if(!bootComplete){
+        setSyn('Conectando ao Supabase...');
+        boot();
+    }
 }
 
 function fazerLogout(){
@@ -1347,9 +1353,17 @@ function fazerLogout(){
 function verificarSessao(){
     try{
         const s=localStorage.getItem('sinc_user');
-        if(s){_usuario=JSON.parse(s);aplicarLoginSucesso();}
-        else{document.getElementById('login-page').style.display='flex';}
-    }catch(e){document.getElementById('login-page').style.display='flex';}
+        if(s){
+            _usuario=JSON.parse(s);
+            aplicarLoginSucesso();
+        }else{
+            document.getElementById('login-page').style.display='flex';
+            document.getElementById('ovl').style.display='none';
+        }
+    }catch(e){
+        document.getElementById('login-page').style.display='flex';
+        document.getElementById('ovl').style.display='none';
+    }
 }
 
 // ══════════════════════════════════════════════════════════════════════
