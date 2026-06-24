@@ -191,6 +191,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
     <span class="syn" id="syn">Aguardando login...</span>
     <span id="user-nome" style="font-size:11px;color:rgba(255,255,255,.8);font-weight:600"></span>
     <button onclick="fazerLogout()" id="btn-logout" style="display:none;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer">Sair</button>
+    <button onclick="abrirAlterarSenha()" id="btn-senha" style="display:none;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" title="Alterar senha">🔑 Senha</button>
+    <button onclick="abrirGerenciarUsuarios()" id="btn-usuarios" style="display:none;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" title="Gerenciar usuários">👤 Usuários</button>
     <button class="btn-new" onclick="openModal()">+ Novo CE</button>
   </div>
 </div>
@@ -441,6 +443,56 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
       <div class="dash-card"><h3>Defesa — FUNAP vs Particular</h3><canvas id="ch-cit" height="130"></canvas></div>
       <div class="dash-card"><h3>Localização dos Presos</h3><canvas id="ch-loc" height="130"></canvas></div>
     </div>
+  </div>
+</div>
+
+<!-- Modal Gerenciar Usuários -->
+<div class="mo" id="modal-usuarios" style="display:none" onclick="if(event.target===this)document.getElementById('modal-usuarios').style.display='none'">
+  <div class="mo-box" style="width:580px">
+    <div class="mo-title">👤 Gerenciar Usuários</div>
+    <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr auto;gap:8px;margin-bottom:12px;align-items:end">
+      <div class="fg" style="margin:0"><label>Nome</label><input id="nu-nome" placeholder="NOME COMPLETO"></div>
+      <div class="fg" style="margin:0"><label>Login</label><input id="nu-login" placeholder="nome.login"></div>
+      <div class="fg" style="margin:0"><label>Senha</label><input type="password" id="nu-senha" placeholder="senha inicial"></div>
+      <div class="fg" style="margin:0"><label>Perfil</label>
+        <select id="nu-perfil" style="border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:13px;width:100%">
+          <option value="usuario">Usuário</option><option value="admin">Admin</option>
+        </select>
+      </div>
+      <button class="btn btn-pr" style="padding:8px 14px;white-space:nowrap;align-self:end" onclick="criarUsuario()">+ Criar</button>
+    </div>
+    <div id="lista-usuarios" style="border:1px solid #e2e8f0;border-radius:8px;max-height:300px;overflow-y:auto;background:#fff"></div>
+    <div class="mo-footer">
+      <button class="btn btn-grey" onclick="document.getElementById('modal-usuarios').style.display='none'">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Alterar Senha -->
+<div class="mo" id="modal-senha" style="display:none" onclick="if(event.target===this)document.getElementById('modal-senha').style.display='none'">
+  <div class="mo-box" style="width:380px">
+    <div class="mo-title">🔑 Alterar Senha</div>
+    <div class="fg"><label>Senha Atual</label><input type="password" id="senha-atual" placeholder="••••••••"></div>
+    <div class="fg"><label>Nova Senha</label><input type="password" id="senha-nova" placeholder="••••••••"></div>
+    <div class="fg"><label>Confirmar Nova Senha</label><input type="password" id="senha-conf" placeholder="••••••••"></div>
+    <div id="senha-err" style="color:#b91c1c;font-size:12px;margin-top:4px;min-height:16px"></div>
+    <div class="mo-footer">
+      <button class="btn btn-grey" onclick="document.getElementById('modal-senha').style.display='none'">Cancelar</button>
+      <button class="btn btn-pr" onclick="confirmarAlterarSenha()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Servidores -->
+<div class="mo" id="srv-modal" style="display:none" onclick="if(event.target===this)document.getElementById('srv-modal').style.display='none'">
+  <div class="mo-box" style="width:480px">
+    <div class="mo-title">⚙ Gerenciar Servidores</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <input id="srv-nome-input" style="flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:13px" placeholder="Nome do servidor (ex: JOSIMAR SALES)">
+      <button class="btn btn-pr" style="padding:8px 16px" onclick="adicionarServidor()">+ Adicionar</button>
+    </div>
+    <div id="srv-lista" style="border:1px solid #e2e8f0;border-radius:8px;min-height:60px;max-height:300px;overflow-y:auto;background:#fff"></div>
+    <div class="mo-footer"><button class="btn btn-grey" onclick="document.getElementById('srv-modal').style.display='none'">Fechar</button></div>
   </div>
 </div>
 
@@ -1320,6 +1372,84 @@ function gerarPDFCitacoes(lista,autoridade){
 
 
 // ══════════════════════════════════════════════════════════════════════
+// GERENCIAR USUÁRIOS (admin)
+// ══════════════════════════════════════════════════════════════════════
+function abrirGerenciarUsuarios(){
+    document.getElementById('modal-usuarios').style.display='flex';
+    carregarListaUsuarios();
+}
+async function carregarListaUsuarios(){
+    const el=document.getElementById('lista-usuarios');
+    el.innerHTML='<div style="padding:12px;color:#94a3b8;font-size:12px;text-align:center">Carregando...</div>';
+    try{
+        const rows=await sbFetch('usuarios?select=id,nome,login,perfil&order=nome.asc')||[];
+        if(!rows.length){el.innerHTML='<div style="padding:12px;color:#94a3b8;font-size:12px;text-align:center">Nenhum usuário</div>';return;}
+        el.innerHTML=rows.map(u=>`<div class="srv-item">
+            <div>
+                <span style="font-weight:700;font-size:13px">${u.nome}</span>
+                <span style="color:#94a3b8;font-size:11px;margin-left:8px">${u.login}</span>
+                <span style="font-size:10px;padding:2px 8px;border-radius:8px;margin-left:6px;font-weight:700;${u.perfil==='admin'?'background:#fee2e2;color:#b91c1c':'background:#dbeafe;color:#1e40af'}">${u.perfil}</span>
+            </div>
+            <button class="btn" style="background:#fee2e2;color:#b91c1c;font-size:10px;padding:2px 8px" onclick="removerUsuario(${u.id},'${u.nome.replace(/'/g,"\'")}')">✕</button>
+        </div>`).join('');
+    }catch(e){el.innerHTML='<div style="padding:12px;color:#b91c1c;font-size:12px">Erro: '+e.message+'</div>';}
+}
+async function criarUsuario(){
+    const nome=document.getElementById('nu-nome').value.trim().toUpperCase();
+    const login=document.getElementById('nu-login').value.trim().toLowerCase();
+    const senha=document.getElementById('nu-senha').value;
+    const perfil=document.getElementById('nu-perfil').value;
+    if(!nome||!login||!senha){toast('Preencha todos os campos.','err');return;}
+    try{
+        const hash=await hashSenha(senha);
+        await sbFetch('usuarios','POST',[{nome,login,senha_hash:hash,perfil}],{'Prefer':'return=minimal'});
+        document.getElementById('nu-nome').value='';
+        document.getElementById('nu-login').value='';
+        document.getElementById('nu-senha').value='';
+        await carregarListaUsuarios();
+        toast('Usuário criado!','ok');
+    }catch(e){toast('Erro: '+e.message,'err');}
+}
+async function removerUsuario(id,nome){
+    if(!confirm('Remover usuário "'+nome+'"?'))return;
+    try{
+        await sbFetch('usuarios?id=eq.'+id,'DELETE',undefined,{'Prefer':'return=minimal'});
+        await carregarListaUsuarios();
+        toast('Usuário removido.','ok');
+    }catch(e){toast('Erro: '+e.message,'err');}
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// ALTERAR SENHA
+// ══════════════════════════════════════════════════════════════════════
+function abrirAlterarSenha(){
+    document.getElementById('senha-atual').value='';
+    document.getElementById('senha-nova').value='';
+    document.getElementById('senha-conf').value='';
+    document.getElementById('senha-err').textContent='';
+    document.getElementById('modal-senha').style.display='flex';
+}
+async function confirmarAlterarSenha(){
+    const atual=document.getElementById('senha-atual').value;
+    const nova=document.getElementById('senha-nova').value;
+    const conf=document.getElementById('senha-conf').value;
+    const err=document.getElementById('senha-err');
+    if(!atual||!nova||!conf){err.textContent='Preencha todos os campos.';return;}
+    if(nova!==conf){err.textContent='As novas senhas não coincidem.';return;}
+    if(nova.length<6){err.textContent='A nova senha deve ter ao menos 6 caracteres.';return;}
+    try{
+        const hashAtual=await hashSenha(atual);
+        const u=usuarioLogado();
+        const rows=await sbFetch('usuarios?id=eq.'+u.id+'&select=senha_hash')||[];
+        if(!rows.length||rows[0].senha_hash!==hashAtual){err.textContent='Senha atual incorreta.';return;}
+        const hashNova=await hashSenha(nova);
+        await sbFetch('usuarios?id=eq.'+u.id,'PATCH',[{senha_hash:hashNova}],{'Prefer':'return=minimal','Content-Type':'application/json'});
+        document.getElementById('modal-senha').style.display='none';
+        toast('Senha alterada com sucesso!','ok');
+    }catch(e){err.textContent='Erro: '+e.message;}
+}
+
+// ══════════════════════════════════════════════════════════════════════
 // AUTENTICAÇÃO
 // ══════════════════════════════════════════════════════════════════════
 function usuarioLogado(){return _usuario;}
@@ -1355,7 +1485,11 @@ function aplicarLoginSucesso(){
     document.getElementById('login-page').style.display='none';
     document.getElementById('user-nome').textContent=_usuario.nome;
     document.getElementById('btn-logout').style.display='inline-block';
-    if(_usuario.perfil==='admin')document.getElementById('tab-log').style.display='inline-flex';
+    document.getElementById('btn-senha').style.display='inline-block';
+    if(_usuario.perfil==='admin'){
+        document.getElementById('tab-log').style.display='inline-flex';
+        document.getElementById('btn-usuarios').style.display='inline-block';
+    }
     if(!bootComplete){
         setSyn('Conectando ao Supabase...');
         boot();
@@ -1373,6 +1507,8 @@ function fazerLogout(){
     document.getElementById('user-nome').textContent='';
     document.getElementById('btn-logout').style.display='none';
     document.getElementById('tab-log').style.display='none';
+    document.getElementById('btn-senha').style.display='none';
+    document.getElementById('btn-usuarios').style.display='none';
 }
 
 function verificarSessao(){
