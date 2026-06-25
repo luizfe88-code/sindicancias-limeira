@@ -1332,9 +1332,73 @@ async function confirmarGerarTermos(){
 
     for(const decl of declarantes){
         const nomeArq = `CE_${String(ce.nce).padStart(4,'0')}_Termo_${decl.papel}_${decl.nome.split(' ')[0]}.docx`;
-        const doc = new Document({sections:[{
-            properties:{page:{size:{width:11906,height:16838},margin:{top:1440,right:1440,bottom:1440,left:1800}}},
-            children:[
+
+        const rodape = [
+            br(),br(),
+            new Paragraph({border:{top:{style:BorderStyle.SINGLE,size:6,color:'1a2744'}},alignment:AlignmentType.CENTER,spacing:{before:480},children:[new TextRun({text:'Secretaria da Administração Penitenciária',font:'Arial',size:18})]}),
+            new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'Polícia Penal - Penitenciária de Limeira',bold:true,font:'Arial',size:18})]}),
+            new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'Rod. Luis Ometto, S/N – KM 32,1 - Zona Rural - CEP: 13.489-899 | Limeira, SP | Fone: (19) 3404-6800',font:'Arial',size:18})]}),
+        ];
+
+        let children;
+
+        if(decl.papel === 'Sindicado'){
+            // ── Modelo específico para o SINDICADO (preso/sentenciado) ──
+            // Baseado na Declaração Diego Gabriel / Alcir — padrão Penitenciária de Limeira
+            const nceStr = `${String(ce.nce).padStart(4,'0')}/2026 - Penitenciária de Limeira`;
+            const dataEvt = ce.data ? ce.data.split('-').reverse().join('/') : '__/__/____';
+            const advNome = ce.advogado_nome || '______________________________';
+            const advOAB  = ce.advogado_oab  || '__________';
+            children = [
+                new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:240},children:[B('TERMO DE DECLARAÇÕES')]}),
+                br(),
+                // Preâmbulo com advogado obrigatório
+                new Paragraph({alignment:AlignmentType.JUSTIFIED,spacing:{after:200},children:[
+                    N('Aos '),B(dataExtenso),
+                    N(', na sala da Equipe de Procedimentos Investigativos Disciplinares desta Unidade Prisional, onde se achavam presentes '),
+                    B(autoridade),N(', Autoridade Apuradora, '),B(secretario),N(', Secretário, e Advogado(a) '),
+                    B(advNome),N(' - OAB/SP '),B(advOAB),
+                    N(', que se faz presente na modalidade de videoconferência através do aplicativo "Microsoft Teams", para apuração dos fatos constantes na Comunicação de Evento nº '),
+                    B(nceStr),N(', datada de '),B(dataEvt),
+                    N(', compareceu, conforme qualificação abaixo:'),
+                ]}),
+                br(),
+                new Paragraph({children:[B('SINDICADO:')]}),br(),
+                new Paragraph({children:[B('Nome: '),N(decl.nome)]}),
+                new Paragraph({children:[B('Matrícula SAP: '),N(decl.rg)]}),
+                new Paragraph({children:[B('Natural: '),N('_______________________________')]}),
+                new Paragraph({children:[B('Data de Nascimento: '),N('__/__/____')]}),
+                br(),
+                new Paragraph({alignment:AlignmentType.JUSTIFIED,children:[
+                    N('Alertado sobre seus direitos constitucionais, descritos no artigo 5º, inciso LXIII, da Constituição Federal, e inquirido sobre os fatos descritos na Comunicação de Evento supra descrita, declara: que concorda em ser ouvido por meio de tele atendimento através do aplicativo "Microsoft Teams"; que ___________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________. Passada a palavra à defesa. Satisfeita com a declaração do sindicado, apresentará a defesa no momento oportuno. Nada mais disse, nem lhe foi perguntado. Nada mais havendo a lavrar, ordenou a Autoridade Apuradora o encerramento do presente Termo que, após lido e achado conforme, devidamente assinado por todos os presentes e por mim, Secretário, que o digitei.'),
+                ]}),
+                br(),br(),
+                // Assinaturas: autoridade | advogado
+                new Paragraph({alignment:AlignmentType.JUSTIFIED,children:[
+                    B(autoridade),
+                    N('                                        '),
+                    B(advNome),
+                ]}),
+                new Paragraph({alignment:AlignmentType.JUSTIFIED,children:[
+                    N('Autoridade Apuradora'),
+                    N('                                              OAB/SP nº '),N(advOAB),
+                ]}),
+                br(),br(),
+                // Sindicado | secretário
+                new Paragraph({alignment:AlignmentType.JUSTIFIED,children:[
+                    B(decl.nome),
+                    N('                                                              '),
+                    B(secretario),
+                ]}),
+                new Paragraph({alignment:AlignmentType.JUSTIFIED,children:[
+                    N('Sindicado'),
+                    N('                                                                                      Secretário'),
+                ]}),
+                ...rodape,
+            ];
+        } else {
+            // ── Modelo para COMUNICANTE e TESTEMUNHA (servidores) ──
+            children = [
                 new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:240},children:[B('TERMO DE DECLARAÇÕES')]}),
                 br(),
                 new Paragraph({alignment:AlignmentType.JUSTIFIED,spacing:{after:200},children:[
@@ -1342,7 +1406,7 @@ async function confirmarGerarTermos(){
                     N(`, na sala da Equipe de Assistência Técnica situada na Penitenciária de Limeira, na presença dos servidores responsáveis pela Apuração dos fatos constantes no Comunicado de Evento nº `),
                     B(`${String(ce.nce).padStart(4,'0')}/2026`),
                     N(` que originou o Procedimento Disciplinar SEI nº `),B(ce.sei||'________________'),
-                    N(` – compareceu o ${decl.papel==='Sindicado'?'sindicado':'servidor'}, cuja qualificação segue:`),
+                    N(` – compareceu o servidor, cuja qualificação segue:`),
                 ]}),
                 br(),
                 new Paragraph({children:[B('DECLARANTE:')]}),br(),
@@ -1367,11 +1431,13 @@ async function confirmarGerarTermos(){
                 br(),br(),
                 new Paragraph({alignment:AlignmentType.CENTER,children:[B(secretario)]}),
                 new Paragraph({alignment:AlignmentType.CENTER,children:[N('Secretário')]}),
-                br(),br(),
-                new Paragraph({border:{top:{style:BorderStyle.SINGLE,size:6,color:'1a2744'}},alignment:AlignmentType.CENTER,spacing:{before:480},children:[new TextRun({text:'Secretaria da Administração Penitenciária',font:'Arial',size:18})]}),
-                new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'Polícia Penal - Penitenciária de Limeira',bold:true,font:'Arial',size:18})]}),
-                new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'Rod. Luis Ometto, S/N – KM 32,1 - Zona Rural - CEP: 13.489-899 | Limeira, SP | Fone: (19) 3404-6800',font:'Arial',size:18})]}),
-            ]
+                ...rodape,
+            ];
+        }
+
+        const doc = new Document({sections:[{
+            properties:{page:{size:{width:11906,height:16838},margin:{top:1440,right:1440,bottom:1440,left:1800}}},
+            children,
         }]});
 
         const buf = await Packer.toBuffer(doc);
