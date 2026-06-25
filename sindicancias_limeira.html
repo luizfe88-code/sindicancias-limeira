@@ -488,7 +488,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   <div class="mo-box" style="width:480px">
     <div class="mo-title">⚙ Gerenciar Servidores</div>
     <div style="display:flex;gap:8px;margin-bottom:12px">
-      <input id="srv-nome-input" style="flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:13px" placeholder="Nome do servidor (ex: JOSIMAR SALES)">
+      <input id="srv-nome-input" style="flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:13px" placeholder="Nome do servidor">
+      <input id="srv-rg-input" style="width:130px;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:13px" placeholder="RG">
       <button class="btn btn-pr" style="padding:8px 16px" onclick="adicionarServidor()">+ Adicionar</button>
     </div>
     <div id="srv-lista" style="border:1px solid #e2e8f0;border-radius:8px;min-height:60px;max-height:300px;overflow-y:auto;background:#fff"></div>
@@ -819,6 +820,8 @@ function renderDetail(){
     if(ce.localizacao)infoHtml+=`<div class="fi"><label>Localização</label><span>${ce.localizacao}${ce.unidade_destino?' — '+ce.unidade_destino:''}</span></div>`;
     if(ce.atividade)infoHtml+=`<div class="fi"><label>Atividade</label><span>${ce.atividade}</span></div>`;
     if(ce.reincidente)infoHtml+=`<div class="fi"><label>Reincidente</label><span>${ce.reincidente}</span></div>`;
+        if(ce.comunicante_nome)infoHtml+=`<div class="fi"><label>Comunicante</label><span>${ce.comunicante_nome}${ce.comunicante_rg?' — RG: '+ce.comunicante_rg:''}</span></div>`;
+        if(ce.testemunha_nome)infoHtml+=`<div class="fi"><label>Testemunha</label><span>${ce.testemunha_nome}${ce.testemunha_rg?' — RG: '+ce.testemunha_rg:''}</span></div>`;
     if(ce.dt_pet)infoHtml+=`<div class="fi"><label>Peticionamento</label><span>${fmtDate(ce.dt_pet)}</span></div>`;
     if(ce.dt_hom)infoHtml+=`<div class="fi"><label>Homologação</label><span>${fmtDate(ce.dt_hom)}</span></div>`;
     if(ce.dt_conc)infoHtml+=`<div class="fi"><label>Conclusão</label><span>${fmtDate(ce.dt_conc)}</span></div>`;
@@ -1210,14 +1213,15 @@ async function loadServidores(){
 function renderListaServidores(){
     const el=document.getElementById('srv-lista');if(!el)return;
     if(!servidores.length){el.innerHTML='<div style="padding:12px;color:#94a3b8;font-size:12px;text-align:center">Nenhum servidor cadastrado</div>';return;}
-    el.innerHTML=servidores.map(s=>`<div class="srv-item"><span style="font-weight:600">${s.nome}</span><button class="btn" style="background:#fee2e2;color:#b91c1c;font-size:10px;padding:2px 8px" onclick="removerServidor(${s.id},'${s.nome.replace(/'/g,"\'")}')">✕</button></div>`).join('');
+    el.innerHTML=servidores.map(s=>`<div class="srv-item"><div><span style="font-weight:600">${s.nome}</span>${s.rg?'<span style="font-size:10px;color:#94a3b8;margin-left:8px">RG: '+s.rg+'</span>':''}</div><button class="btn" style="background:#fee2e2;color:#b91c1c;font-size:10px;padding:2px 8px" onclick="removerServidor(${s.id},'${s.nome.replace(/'/g,"\'")}')">✕</button></div>`).join('');
 }
 function openModalServidores(){document.getElementById('srv-modal').style.display='flex';loadServidores();}
 async function adicionarServidor(){
     const nome=document.getElementById('srv-nome-input').value.trim().toUpperCase();
     if(!nome){toast('Informe o nome.','err');return;}
     if(servidores.find(s=>s.nome===nome)){toast('Já cadastrado.','err');return;}
-    try{await sbFetch('servidores','POST',[{nome}],{'Prefer':'return=minimal'});document.getElementById('srv-nome-input').value='';await loadServidores();toast('Adicionado!','ok');}
+    const rg_srv=document.getElementById('srv-rg-input')?.value.trim()||'';
+    try{await sbFetch('servidores','POST',[{nome,rg:rg_srv}],{'Prefer':'return=minimal'});document.getElementById('srv-nome-input').value='';if(document.getElementById('srv-rg-input'))document.getElementById('srv-rg-input').value='';await loadServidores();toast('Adicionado!','ok');}
     catch(e){toast('Erro: '+e.message,'err');}
 }
 async function removerServidor(id,nome){
