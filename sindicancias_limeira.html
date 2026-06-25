@@ -498,6 +498,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   </div>
 </div>
 
+<!-- Modal Termos de Declaração -->
+<div class="mo" id="modal-termos" style="display:none" onclick="if(event.target===this)document.getElementById('modal-termos').style.display='none'">
+  <div class="mo-box" style="width:500px">
+    <div class="mo-title">📝 Gerar Termos de Declaração</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:14px">Serão gerados 3 arquivos .docx editáveis — um por declarante.</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px" id="termos-preview"></div>
+    <div class="fg">
+      <label>Autoridade Apuradora</label>
+      <select id="termos-autoridade" style="border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:13px;width:100%">
+        <option value="">— Selecione —</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Secretário</label>
+      <select id="termos-secretario" style="border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:13px;width:100%">
+        <option value="">— Selecione —</option>
+      </select>
+    </div>
+    <div class="mo-footer">
+      <button class="btn btn-grey" onclick="document.getElementById('modal-termos').style.display='none'">Cancelar</button>
+      <button class="btn btn-pr" onclick="confirmarGerarTermos()">📥 Gerar .docx</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Edição/Novo CE -->
 <div class="mo" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
   <div class="mo-box">
@@ -884,6 +909,7 @@ function renderDetail(){
         <div class="det-actions">
             <button class="btn btn-ok" onclick="abrirConclusao('${ce.id}')">✓ Concluído</button>
             <button class="btn btn-ed" onclick="openModal('${ce.id}')">✎ Editar</button>
+            ${ce.tipo==='PID'?`<button class="btn" style="background:#e0f2fe;color:#0369a1" onclick="abrirModalTermos('${ce.id}')">📝 Termos</button>`:''}
             <button class="btn btn-del" onclick="delCE('${ce.id}')">✕ Excluir</button>
         </div>
     </div>
@@ -1232,6 +1258,134 @@ function limparFiltrosRank(){
 }
 
 // ── Servidores ─────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════
+// TERMOS DE DECLARAÇÃO — geração de .docx via docx-js CDN
+// ══════════════════════════════════════════════════════════════════════
+let _termoCeId = null;
+
+function abrirModalTermos(id){
+    _termoCeId = id;
+    const ce = ces.find(c => c.id === id);
+    if(!ce) return;
+
+    // Preview dos declarantes
+    const prev = document.getElementById('termos-preview');
+    const declarantes = [];
+    if(ce.comunicante_nome) declarantes.push({label:'Comunicante', nome:ce.comunicante_nome, rg:ce.comunicante_rg||'—', tipo:'comunicante'});
+    if(ce.testemunha_nome) declarantes.push({label:'Testemunha', nome:ce.testemunha_nome, rg:ce.testemunha_rg||'—', tipo:'testemunha'});
+    declarantes.push({label:'Sindicado', nome:ce.sindicado, rg:ce.matricula||'—', tipo:'sindicado'});
+
+    prev.innerHTML = declarantes.map(d => `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0">
+        <span style="font-size:10px;font-weight:700;background:#1a2744;color:#fff;padding:2px 8px;border-radius:8px;white-space:nowrap">${d.label}</span>
+        <span style="font-size:12px;font-weight:600">${d.nome}</span>
+        <span style="font-size:11px;color:#94a3b8">RG/Mat: ${d.rg}</span>
+    </div>`).join('');
+
+    // Popular selects de autoridade e secretário
+    const opts = '<option value="">— Selecione —</option>' + servidores.map(s=>`<option value="${s.nome}">${s.nome}${s.rg?' — RG: '+s.rg:''}</option>`).join('');
+    document.getElementById('termos-autoridade').innerHTML = opts;
+    document.getElementById('termos-secretario').innerHTML = opts;
+
+    document.getElementById('modal-termos').style.display = 'flex';
+}
+
+async function confirmarGerarTermos(){
+    const autoridade = document.getElementById('termos-autoridade').value;
+    const secretario = document.getElementById('termos-secretario').value;
+    if(!autoridade){toast('Selecione a Autoridade Apuradora.','err');return;}
+    if(!secretario){toast('Selecione o Secretário.','err');return;}
+
+    const ce = ces.find(c => c.id === _termoCeId);
+    if(!ce) return;
+    document.getElementById('modal-termos').style.display='none';
+
+    const declarantes = [];
+    if(ce.comunicante_nome) declarantes.push({nome:ce.comunicante_nome, rg:ce.comunicante_rg||'', profissao:'Policial Penal', papel:'Comunicante'});
+    if(ce.testemunha_nome) declarantes.push({nome:ce.testemunha_nome, rg:ce.testemunha_rg||'', profissao:'Policial Penal', papel:'Testemunha'});
+    declarantes.push({nome:ce.sindicado, rg:ce.matricula||'', profissao:'Sentenciado', papel:'Sindicado'});
+
+    // Carregar docx-js via CDN e gerar
+    if(!window.docx){
+        toast('Carregando biblioteca...','ok');
+        await new Promise((res,rej)=>{
+            const s=document.createElement('script');
+            s.src='https://cdnjs.cloudflare.com/ajax/libs/docx/9.4.1/docx.umd.min.js';
+            s.onload=res; s.onerror=rej;
+            document.head.appendChild(s);
+        });
+    }
+
+    const hoje = new Date();
+    const diasExt = ['primeiro','dois','três','quatro','cinco','seis','sete','oito','nove','dez',
+        'onze','doze','treze','quatorze','quinze','dezesseis','dezessete','dezoito','dezenove','vinte',
+        'vinte e um','vinte e dois','vinte e três','vinte e quatro','vinte e cinco','vinte e seis',
+        'vinte e sete','vinte e oito','vinte e nove','trinta','trinta e um'];
+    const mesesExt = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    const anoExt = {2026:'dois mil e vinte e seis',2027:'dois mil e vinte e sete'};
+    const dataExtenso = `${diasExt[hoje.getDate()-1]} dias do mês de ${mesesExt[hoje.getMonth()]} do ano de ${anoExt[hoje.getFullYear()]||hoje.getFullYear()}`;
+
+    const {Document,Packer,Paragraph,TextRun,AlignmentType,BorderStyle} = window.docx;
+
+    function B(t){return new TextRun({text:t,bold:true,font:'Arial',size:24});}
+    function N(t){return new TextRun({text:t,font:'Arial',size:24});}
+    function br(){return new Paragraph({children:[]});}
+
+    for(const decl of declarantes){
+        const nomeArq = `CE_${String(ce.nce).padStart(4,'0')}_Termo_${decl.papel}_${decl.nome.split(' ')[0]}.docx`;
+        const doc = new Document({sections:[{
+            properties:{page:{size:{width:11906,height:16838},margin:{top:1440,right:1440,bottom:1440,left:1800}}},
+            children:[
+                new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:240},children:[B('TERMO DE DECLARAÇÕES')]}),
+                br(),
+                new Paragraph({alignment:AlignmentType.JUSTIFIED,spacing:{after:200},children:[
+                    N('Aos '),B(dataExtenso),
+                    N(`, na sala da Equipe de Assistência Técnica situada na Penitenciária de Limeira, na presença dos servidores responsáveis pela Apuração dos fatos constantes no Comunicado de Evento nº `),
+                    B(`${String(ce.nce).padStart(4,'0')}/2026`),
+                    N(` que originou o Procedimento Disciplinar SEI nº `),B(ce.sei||'________________'),
+                    N(` – compareceu o ${decl.papel==='Sindicado'?'sindicado':'servidor'}, cuja qualificação segue:`),
+                ]}),
+                br(),
+                new Paragraph({children:[B('DECLARANTE:')]}),br(),
+                new Paragraph({children:[B('Nome: '),N(decl.nome)]}),
+                new Paragraph({children:[B('RG: '),N(decl.rg)]}),
+                new Paragraph({children:[B('Profissão: '),N(decl.profissao)]}),
+                new Paragraph({children:[B('Local de Trabalho: '),N('Penitenciária de Limeira – SP')]}),
+                br(),
+                new Paragraph({alignment:AlignmentType.JUSTIFIED,children:[
+                    N('Neste ato perguntado pela Autoridade Apuradora sobre os fatos, assim declarou: ___________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________'),
+                ]}),
+                br(),
+                new Paragraph({alignment:AlignmentType.JUSTIFIED,children:[
+                    N('Nada mais havendo a lavrar, ordenou a Autoridade Apuradora o encerramento do presente termo que, após lido e achado conforme, vai devidamente assinado por todos os presentes, e por mim, secretário que o digitei.'),
+                ]}),
+                br(),br(),
+                new Paragraph({alignment:AlignmentType.CENTER,children:[B(decl.nome)]}),
+                new Paragraph({alignment:AlignmentType.CENTER,children:[N(decl.papel)]}),
+                br(),br(),
+                new Paragraph({alignment:AlignmentType.CENTER,children:[B(autoridade)]}),
+                new Paragraph({alignment:AlignmentType.CENTER,children:[N('Autoridade Apuradora')]}),
+                br(),br(),
+                new Paragraph({alignment:AlignmentType.CENTER,children:[B(secretario)]}),
+                new Paragraph({alignment:AlignmentType.CENTER,children:[N('Secretário')]}),
+                br(),br(),
+                new Paragraph({border:{top:{style:BorderStyle.SINGLE,size:6,color:'1a2744'}},alignment:AlignmentType.CENTER,spacing:{before:480},children:[new TextRun({text:'Secretaria da Administração Penitenciária',font:'Arial',size:18})]}),
+                new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'Polícia Penal - Penitenciária de Limeira',bold:true,font:'Arial',size:18})]}),
+                new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'Rod. Luis Ometto, S/N – KM 32,1 - Zona Rural - CEP: 13.489-899 | Limeira, SP | Fone: (19) 3404-6800',font:'Arial',size:18})]}),
+            ]
+        }]});
+
+        const buf = await Packer.toBuffer(doc);
+        const blob = new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href=url; a.download=nomeArq; a.click();
+        URL.revokeObjectURL(url);
+        await new Promise(r=>setTimeout(r,400)); // pequena pausa entre downloads
+    }
+    toast(`${declarantes.length} termos gerados!`,'ok');
+    await registrarLog('EDITAR',ce,`Termos de declaração gerados — ${declarantes.length} arquivos`);
+}
+
 function preencherRgServidor(input, rgFieldId){
     const nome=input.value.trim();
     const srv=servidores.find(s=>s.nome===nome);
