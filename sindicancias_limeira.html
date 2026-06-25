@@ -1199,6 +1199,12 @@ function limparFiltrosRank(){
 }
 
 // ── Servidores ─────────────────────────────────────────────────
+function preencherRgServidor(input, rgFieldId){
+    const nome=input.value.trim();
+    const srv=servidores.find(s=>s.nome===nome);
+    const rgEl=document.getElementById(rgFieldId);
+    if(rgEl)rgEl.value=srv?srv.rg||'':'';
+}
 async function loadServidores(){
     try{
         const rows=await sbFetch('servidores?select=id,nome&order=nome.asc');
