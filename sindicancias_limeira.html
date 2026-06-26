@@ -1065,7 +1065,7 @@ function renderDetail(){
     if(ce.dt_pet)infoHtml+=`<div class="fi"><label>Peticionamento</label><span>${fmtDate(ce.dt_pet)}</span></div>`;
     if(ce.dt_hom)infoHtml+=`<div class="fi"><label>Homologação</label><span>${fmtDate(ce.dt_hom)}</span></div>`;
     if(ce.dt_conc)infoHtml+=`<div class="fi"><label>Conclusão</label><span>${fmtDate(ce.dt_conc)}</span></div>`;
-    if(ce.apreensoes)infoHtml+=`<div class="fi"><label>Apreensão</label><span>${ce.apreensoes}${ce.quantidade?' | '+ce.quantidade+(ce.unidade?' '+ce.unidade:''):''}</span></div>`;
+    if(ce.apreensoes)infoHtml+=`<div class="fi"><label>Apreensão</label><span>${aprFmt(ce.apreensoes)}</span></div>`;
 
     // Checklist
     let checkHtml='';
@@ -1336,7 +1336,7 @@ function aprParse(val){
 function aprFmt(val){
     const items=aprParse(val);
     if(!items.length) return '—';
-    return items.map(i=>i.objeto+(i.qtd?' ('+i.qtd+(i.unidade?' '+i.unidade:'')+')':'')).join('<br>');
+    return items.map(i=>i.objeto+(i.qtd?' — '+i.qtd+(i.unidade?' '+i.unidade.toUpperCase():''):'')).join('<br>');
 }
 function aprGetLinhas(){
     return [...document.querySelectorAll('.apr-linha')].map(row=>({
