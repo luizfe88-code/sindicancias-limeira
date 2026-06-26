@@ -1347,11 +1347,13 @@ async function confirmarGerarTermos(){
     const secretario = document.getElementById('termos-secretario').value;
     if(!autoridade){toast('Selecione a Autoridade Apuradora.','err');return;}
     if(!secretario){toast('Selecione o Secretário.','err');return;}
-
     const ce = ces.find(c => c.id === _termoCeId);
     if(!ce) return;
     document.getElementById('modal-termos').style.display='none';
+    await gerarTermosCE(ce, autoridade, secretario);
+}
 
+async function gerarTermosCE(ce, autoridade, secretario){
     const declarantes = [];
     if(ce.comunicante_nome) declarantes.push({nome:ce.comunicante_nome, rg:ce.comunicante_rg||'', profissao:'Policial Penal', papel:'Comunicante'});
     if(ce.testemunha_nome) declarantes.push({nome:ce.testemunha_nome, rg:ce.testemunha_rg||'', profissao:'Policial Penal', papel:'Testemunha'});
@@ -1367,6 +1369,7 @@ async function confirmarGerarTermos(){
             document.head.appendChild(s);
         });
     }
+
 
     const hoje = new Date();
     const diasExt = ['primeiro','dois','três','quatro','cinco','seis','sete','oito','nove','dez',
@@ -1628,14 +1631,9 @@ async function gerarTermosLote(){
     if(!secretario){toast('Selecione o Secretário.','err');return;}
     if(!selTrmPagina.size){toast('Selecione ao menos um processo.','err');return;}
     const lista=[...selTrmPagina].map(id=>ces.find(c=>c.id===id)).filter(Boolean);
-    // Para cada CE selecionado, abre o modal de termos com os dados preenchidos
-    // Como a geração é individual por CE, geramos em sequência
+    toast('Gerando termos...','ok');
     for(const ce of lista){
-        _termoCeId=ce.id;
-        // Substituir temporariamente autoridade/secretario no modal-termos e gerar
-        document.getElementById('termos-autoridade').value=autoridade;
-        document.getElementById('termos-secretario').value=secretario;
-        await confirmarGerarTermos();
+        await gerarTermosCE(ce, autoridade, secretario);
         await new Promise(r=>setTimeout(r,600));
     }
     selTrmPagina.clear();
