@@ -1447,7 +1447,11 @@ async function gerarTermosCE(ce, autoridade, secretario, filtro){
 
     if(!Document||!Packer){ toast('Biblioteca docx não carregou corretamente.','err'); return; }
 
-    // Converter base64 → Uint8Array para ImageRun
+    // Carregar imagens institucionais
+    async function fetchImg(url){ const r=await fetch(url); const ab=await r.arrayBuffer(); return new Uint8Array(ab); }
+    const TIMBRE_DATA = await fetchImg('./timbre.png');
+    const RODAPE_DATA = await fetchImg('./rodape.png');
+
     const B=_docxB, N=_docxN, S=_docxS, br=_docxBr;
     const parJ=_docxParJ, parC=_docxParC, parL=_docxParL;
     const rodape=_docxRodape(RODAPE_DATA);
