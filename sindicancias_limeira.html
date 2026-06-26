@@ -1452,6 +1452,12 @@ async function gerarTermosCE(ce, autoridade, secretario, filtro){
     const TIMBRE_DATA = await fetchImg('./timbre.png');
     const RODAPE_DATA = await fetchImg('./rodape.png');
 
+    const hoje = new Date();
+    const _diasExt=['primeiro','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze','treze','quatorze','quinze','dezesseis','dezessete','dezoito','dezenove','vinte','vinte e um','vinte e dois','vinte e três','vinte e quatro','vinte e cinco','vinte e seis','vinte e sete','vinte e oito','vinte e nove','trinta','trinta e um'];
+    const _mesesExt=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    const _anosExt={2025:'dois mil e vinte e cinco',2026:'dois mil e vinte e seis',2027:'dois mil e vinte e sete',2028:'dois mil e vinte e oito'};
+    const dataExtenso=`${_diasExt[hoje.getDate()-1]} dias do mês de ${_mesesExt[hoje.getMonth()]} do ano de ${_anosExt[hoje.getFullYear()]||hoje.getFullYear()}`;
+
     const B=_docxB, N=_docxN, S=_docxS, br=_docxBr;
     const parJ=_docxParJ, parC=_docxParC, parL=_docxParL;
     const rodape=_docxRodape(RODAPE_DATA);
