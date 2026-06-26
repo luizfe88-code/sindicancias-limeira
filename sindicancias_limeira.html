@@ -203,6 +203,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   <div class="tab" id="tab-rank" onclick="showPage('rank',this)">🎯 Prioridades</div>
   <div class="tab" id="tab-apr" onclick="showPage('apr',this)">📦 Apreensões</div>
   <div class="tab" id="tab-cit" onclick="showPage('cit',this)">📄 Citações</div>
+  <div class="tab" id="tab-termos-pg" onclick="showPage('termos-pg',this)">📝 Termos</div>
   <div class="tab" id="tab-log" onclick="showPage('log',this)" style="display:none">📋 Log</div>
   <div class="tab" id="tab-dash" onclick="showPage('dash',this)">📊 Dashboard</div>
 </div>
@@ -443,6 +444,57 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
       <div class="dash-card"><h3>Por Regime</h3><canvas id="ch-reg" height="130"></canvas></div>
       <div class="dash-card"><h3>Defesa — FUNAP vs Particular</h3><canvas id="ch-cit" height="130"></canvas></div>
       <div class="dash-card"><h3>Localização dos Presos</h3><canvas id="ch-loc" height="130"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- Página Termos -->
+<div class="page" id="page-termos-pg">
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:12px 16px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select id="trm-f-grav" onchange="renderTermosPg()" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;background:#fff">
+        <option value="">Todas gravidades</option>
+        <option>GRAVE</option><option>MÉDIA</option><option>LEVE</option>
+        <option>ARQUIVAMENTO</option><option>SINDICÂNCIA</option><option>PAD</option>
+      </select>
+      <select id="trm-f-tipo" onchange="renderTermosPg()" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;background:#fff">
+        <option value="">Pendentes (com ou test)</option>
+        <option value="com">Sem decl. comunicante</option>
+        <option value="test">Sem decl. testemunha</option>
+      </select>
+      <input id="trm-f-srch" placeholder="🔍 Buscar..." oninput="renderTermosPg()" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;min-width:160px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;margin-left:4px">
+        <input type="checkbox" id="trm-selall" onchange="toggleSelecionarTodosTrm()"> Selecionar todos
+      </label>
+      <span id="trm-total" style="font-size:11px;color:#94a3b8;margin-left:4px"></span>
+      <div id="trm-lote-btns" style="display:none;margin-left:auto;gap:8px;align-items:center;display:flex">
+        <span id="trm-lote-count" style="font-size:12px;font-weight:700;color:#1a2744"></span>
+        <select id="trm-autoridade" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;background:#fff;min-width:180px">
+          <option value="">— Autoridade Apuradora —</option>
+        </select>
+        <select id="trm-secretario" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;background:#fff;min-width:180px">
+          <option value="">— Secretário —</option>
+        </select>
+        <button class="btn" style="background:#dbeafe;color:#1e3a8a;font-size:12px;padding:5px 14px" onclick="gerarTermosLote()">📝 Gerar .docx</button>
+        <button class="btn" style="background:#e2e8f0;color:#475569;font-size:11px;padding:5px 10px" onclick="limparSelTrmPagina()">✕</button>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:12px 16px">
+      <table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0">
+        <thead><tr style="background:#1a2744;color:#fff">
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;width:36px"></th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">CE / Sindicado</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">SEI</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Natureza</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Gravidade</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Comunicante</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Testemunha</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Decl. Com.</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Decl. Test.</th>
+          <th style="padding:9px 12px;font-size:11px;font-weight:600"></th>
+        </tr></thead>
+        <tbody id="trm-tbody"></tbody>
+      </table>
     </div>
   </div>
 </div>
@@ -791,6 +843,7 @@ function showPage(id,tab){
     if(id==='rank')renderRank();
     if(id==='apr')renderApr();
     if(id==='cit')renderCitacoes();
+    if(id==='termos-pg')renderTermosPg();
     if(id==='dash')renderDash();
 }
 
@@ -1460,11 +1513,17 @@ function preencherRgServidor(input, rgFieldId){
 }
 async function loadServidores(){
     try{
-        const rows=await sbFetch('servidores?select=id,nome&order=nome.asc');
+        const rows=await sbFetch('servidores?select=id,nome,rg&order=nome.asc');
         servidores=rows||[];
-        ['cit-autoridade','cit-autoridade-pg'].forEach(sid=>{
+        // Preencher selects de autoridade/secretario
+        ['cit-autoridade','cit-autoridade-pg','termos-autoridade','termos-secretario'].forEach(sid=>{
             const sel=document.getElementById(sid);
-            if(sel){const cur=sel.value;sel.innerHTML='<option value="">— Selecione —</option>'+servidores.map(s=>`<option value="${s.nome}">${s.nome}</option>`).join('');if(cur)sel.value=cur;}
+            if(sel){const cur=sel.value;sel.innerHTML='<option value="">\u2014 Selecione \u2014</option>'+servidores.map(s=>`<option value="${s.nome}">${s.nome}</option>`).join('');if(cur)sel.value=cur;}
+        });
+        // Preencher datalists de comunicante e testemunha
+        ['dl-serv-com','dl-serv-test'].forEach(dlid=>{
+            const dl=document.getElementById(dlid);
+            if(dl) dl.innerHTML=servidores.map(s=>`<option value="${s.nome}">${s.nome}${s.rg?' \u2014 '+s.rg:''}</option>`).join('');
         });
         renderListaServidores();
     }catch(e){console.warn('Servidores:',e.message);}
@@ -1487,6 +1546,101 @@ async function removerServidor(id,nome){
     if(!confirm('Remover "'+nome+'"?'))return;
     try{await sbFetch('servidores?id=eq.'+id,'DELETE',undefined,{'Prefer':'return=minimal'});await loadServidores();toast('Removido.','ok');}
     catch(e){toast('Erro: '+e.message,'err');}
+}
+
+// ── Termos página ─────────────────────────────────────────────
+const selTrmPagina = new Set();
+
+function renderTermosPg(){
+    const grav=document.getElementById('trm-f-grav')?.value||'';
+    const tipo=document.getElementById('trm-f-tipo')?.value||'';
+    const q=(document.getElementById('trm-f-srch')?.value||'').toLowerCase();
+    // Mostra CEs do tipo PID que não têm decl_com OU não têm decl_test
+    let list=ces.filter(c=>{
+        if(c.tipo!=='PID') return false;
+        const semCom = !(c.steps&&c.steps['decl_com']);
+        const semTest = !(c.steps&&c.steps['decl_test']);
+        if(tipo==='com') return semCom;
+        if(tipo==='test') return semTest;
+        return semCom || semTest;
+    });
+    if(grav) list=list.filter(c=>c.gravidade===grav);
+    if(q) list=list.filter(c=>(c.nce+' '+c.sindicado+' '+c.sei+' '+c.natureza).toLowerCase().includes(q));
+    list.sort((a,b)=>{const gv={GRAVE:0,PAD:1,SINDICÂNCIA:2,MÉDIA:3,LEVE:4,ARQUIVAMENTO:5};return (gv[a.gravidade]??6)-(gv[b.gravidade]??6)||dias(b.data)-dias(a.data);});
+    const total=document.getElementById('trm-total');
+    if(total) total.textContent=list.length+' processo(s) pendente(s)';
+    const tbody=document.getElementById('trm-tbody');if(!tbody)return;
+    if(!list.length){tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:24px;color:#94a3b8;font-size:12px">✓ Nenhum processo pendente de termo</td></tr>';atualizarBotoesTrmPagina();return;}
+    const gravCol={GRAVE:'#b91c1c',MÉDIA:'#b45309',LEVE:'#1a7a4a',PAD:'#6366f1',SINDICÂNCIA:'#0891b2',ARQUIVAMENTO:'#94a3b8'};
+    const chk=(step,ce)=>ce.steps&&ce.steps[step]?'<span style="color:#16a34a;font-weight:700">✓</span>':'<span style="color:#b91c1c">✕</span>';
+    tbody.innerHTML=list.map(ce=>{
+        const sel=selTrmPagina.has(ce.id);
+        return`<tr style="border-bottom:1px solid #f1f5f9;cursor:pointer" onclick="toggleSelTrm('${ce.id}')">
+            <td style="padding:9px 12px;text-align:center"><input type="checkbox" ${sel?'checked':''} onclick="event.stopPropagation();toggleSelTrm('${ce.id}')" style="accent-color:#2557a7;width:15px;height:15px"></td>
+            <td style="padding:9px 12px"><strong>CE ${ce.nce}</strong><br><small style="color:#475569">${ce.sindicado}${ce.matricula?' — '+ce.matricula:''}</small></td>
+            <td style="padding:9px 12px;font-size:11px;color:#475569">${ce.sei||'—'}</td>
+            <td style="padding:9px 12px;font-size:11px">${ce.natureza||'—'}</td>
+            <td style="padding:9px 12px;font-weight:700;color:${gravCol[ce.gravidade]||'#475569'}">${ce.gravidade||'—'}</td>
+            <td style="padding:9px 12px;font-size:11px">${ce.comunicante_nome||'<span style="color:#94a3b8">—</span>'}</td>
+            <td style="padding:9px 12px;font-size:11px">${ce.testemunha_nome||'<span style="color:#94a3b8">—</span>'}</td>
+            <td style="padding:9px 12px;text-align:center">${chk('decl_com',ce)}</td>
+            <td style="padding:9px 12px;text-align:center">${chk('decl_test',ce)}</td>
+            <td style="padding:6px 10px"><button class="btn btn-pr" style="font-size:10px;padding:3px 9px;white-space:nowrap" onclick="event.stopPropagation();selCE('${ce.id}');showPage('proc',document.getElementById('tab-proc'))">Abrir</button></td>
+        </tr>`;
+    }).join('');
+    atualizarBotoesTrmPagina();
+    // Popular selects de autoridade/secretario da aba
+    ['trm-autoridade','trm-secretario'].forEach(sid=>{
+        const sel=document.getElementById(sid);
+        if(sel&&servidores.length){const cur=sel.value;sel.innerHTML='<option value="">— Selecione —</option>'+servidores.map(s=>`<option value="${s.nome}">${s.nome}</option>`).join('');if(cur)sel.value=cur;}
+    });
+}
+function toggleSelTrm(id){if(selTrmPagina.has(id))selTrmPagina.delete(id);else selTrmPagina.add(id);atualizarBotoesTrmPagina();renderTermosPg();}
+function toggleSelecionarTodosTrm(){
+    const chk=document.getElementById('trm-selall');
+    const grav=document.getElementById('trm-f-grav')?.value||'';
+    const tipo=document.getElementById('trm-f-tipo')?.value||'';
+    const q=(document.getElementById('trm-f-srch')?.value||'').toLowerCase();
+    let list=ces.filter(c=>{
+        if(c.tipo!=='PID') return false;
+        const semCom=!(c.steps&&c.steps['decl_com']);
+        const semTest=!(c.steps&&c.steps['decl_test']);
+        if(tipo==='com') return semCom;
+        if(tipo==='test') return semTest;
+        return semCom||semTest;
+    });
+    if(grav)list=list.filter(c=>c.gravidade===grav);
+    if(q)list=list.filter(c=>(c.nce+' '+c.sindicado+' '+c.sei+' '+c.natureza).toLowerCase().includes(q));
+    if(chk.checked)list.forEach(c=>selTrmPagina.add(c.id));else selTrmPagina.clear();
+    renderTermosPg();
+}
+function atualizarBotoesTrmPagina(){
+    const btns=document.getElementById('trm-lote-btns');
+    const cnt=document.getElementById('trm-lote-count');
+    if(btns) btns.style.display=selTrmPagina.size>0?'flex':'none';
+    if(cnt) cnt.textContent=selTrmPagina.size+' selecionado(s)';
+}
+function limparSelTrmPagina(){selTrmPagina.clear();const chk=document.getElementById('trm-selall');if(chk)chk.checked=false;renderTermosPg();}
+async function gerarTermosLote(){
+    const autoridade=document.getElementById('trm-autoridade')?.value;
+    const secretario=document.getElementById('trm-secretario')?.value;
+    if(!autoridade){toast('Selecione a Autoridade Apuradora.','err');return;}
+    if(!secretario){toast('Selecione o Secretário.','err');return;}
+    if(!selTrmPagina.size){toast('Selecione ao menos um processo.','err');return;}
+    const lista=[...selTrmPagina].map(id=>ces.find(c=>c.id===id)).filter(Boolean);
+    // Para cada CE selecionado, abre o modal de termos com os dados preenchidos
+    // Como a geração é individual por CE, geramos em sequência
+    for(const ce of lista){
+        _termoCeId=ce.id;
+        // Substituir temporariamente autoridade/secretario no modal-termos e gerar
+        document.getElementById('termos-autoridade').value=autoridade;
+        document.getElementById('termos-secretario').value=secretario;
+        await confirmarGerarTermos();
+        await new Promise(r=>setTimeout(r,600));
+    }
+    selTrmPagina.clear();
+    renderTermosPg();
+    toast(`Termos gerados para ${lista.length} processo(s)!`,'ok');
 }
 
 // ── Citações página ────────────────────────────────────────────
