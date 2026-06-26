@@ -847,7 +847,7 @@ function showPage(id,tab){
     if(id==='apr')renderApr();
     if(id==='cit')renderCitacoes();
     if(id==='termos-pg')renderTermosPg();
-    if(id==='dash')renderDash();
+    if(id==='dash'){initDashDefaults();renderDash();}
 }
 
 // ── renderAll ─────────────────────────────────────────────────
@@ -874,6 +874,7 @@ function renderList(){
         if(q){const s=(c.nce+' '+c.sindicado+' '+c.sei+' '+c.natureza).toLowerCase();if(!s.includes(q))return false;}
         return true;
     });
+    list.sort((a,b)=>(parseInt(a.nce)||0)-(parseInt(b.nce)||0));
     gEl('lista-count').textContent=list.length+' processos';
     const isA=id=>id===selId;
     gEl('lista-items').innerHTML=list.map(ce=>{
@@ -1236,6 +1237,12 @@ function limparFiltrosDash(){
     ['dash-grav','dash-reg'].forEach(id=>{const el=gEl(id);if(el)el.value='';});
     renderDash();
 }
+function initDashDefaults(){
+    const de=gEl('dash-de'), ate=gEl('dash-ate');
+    if(de&&!de.value) de.value='2026-01-01';
+    if(ate&&!ate.value) ate.value='2026-12-31';
+}
+
 function renderDash(){
     const de=gEl('dash-de')?.value||'';
     const ate=gEl('dash-ate')?.value||'';
@@ -1371,24 +1378,26 @@ function _docxBr(){const {Paragraph,TextRun}=window.docx;return new Paragraph({s
 function _docxParJ(runs,sp){const {Paragraph,AlignmentType}=window.docx;return new Paragraph({alignment:AlignmentType.JUSTIFIED,spacing:{after:sp||200},children:runs});}
 function _docxParC(runs,sp){const {Paragraph,AlignmentType}=window.docx;return new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:sp||100},children:runs});}
 function _docxParL(runs,sp){const {Paragraph,AlignmentType}=window.docx;return new Paragraph({alignment:AlignmentType.LEFT,spacing:{after:sp||100},children:runs});}
-function _docxHeader(TIMBRE_DATA){
-    const {Paragraph,AlignmentType,BorderStyle,ImageRun}=window.docx;
+function _docxHeader(){
+    const {Paragraph,AlignmentType,BorderStyle,TextRun}=window.docx;
     return new Paragraph({
         alignment:AlignmentType.RIGHT,spacing:{after:300},
         border:{bottom:{style:BorderStyle.SINGLE,size:8,color:'1a2744',space:6}},
-        children:[new ImageRun({data:TIMBRE_DATA,transformation:{width:220,height:55},type:'png'})],
+        children:[
+            new TextRun({text:'SECRETARIA DA ADMINISTRAÇÃO PENITENCIÁRIA',bold:true,font:'Arial',size:18,color:'1a2744'}),
+            new TextRun({text:'  |  PENITENCIÁRIA DE LIMEIRA',font:'Arial',size:18,color:'1a2744'}),
+        ],
     });
 }
-function _docxRodape(RODAPE_DATA){
-    const {Paragraph,AlignmentType,BorderStyle,ImageRun,TextRun}=window.docx;
+function _docxRodape(){
+    const {Paragraph,AlignmentType,BorderStyle,TextRun}=window.docx;
     return [
         _docxBr(),
         new Paragraph({
-            alignment:AlignmentType.RIGHT,spacing:{before:400,after:60},
             border:{top:{style:BorderStyle.SINGLE,size:6,color:'1a2744',space:4}},
-            children:[new ImageRun({data:RODAPE_DATA,transformation:{width:200,height:45},type:'png'})],
+            alignment:AlignmentType.CENTER,spacing:{before:400,after:60},
+            children:[new TextRun({text:'Secretaria da Administração Penitenciária',font:'Arial',size:18})],
         }),
-        _docxParC([new TextRun({text:'Secretaria da Administração Penitenciária',font:'Arial',size:18})],40),
         _docxParC([new TextRun({text:'Polícia Penal – Penitenciária de Limeira',bold:true,font:'Arial',size:18})],40),
         _docxParC([new TextRun({text:'Rod. Luis Ometto, S/N – KM 32,1 – Zona Rural – CEP: 13.489-899 | Limeira, SP | Fone: (19) 3404-6800',font:'Arial',size:18})],0),
     ];
@@ -1448,9 +1457,7 @@ async function gerarTermosCE(ce, autoridade, secretario, filtro){
     if(!Document||!Packer){ toast('Biblioteca docx não carregou corretamente.','err'); return; }
 
     // Carregar imagens institucionais
-    const fetchImg = async (url) => { const r=await fetch(url); const ab=await r.arrayBuffer(); return new Uint8Array(ab); };
-    const TIMBRE_DATA = await fetchImg('./timbre.png');
-    const RODAPE_DATA = await fetchImg('./rodape.png');
+
 
     const hoje = new Date();
     const _diasExt=['primeiro','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze','treze','quatorze','quinze','dezesseis','dezessete','dezoito','dezenove','vinte','vinte e um','vinte e dois','vinte e três','vinte e quatro','vinte e cinco','vinte e seis','vinte e sete','vinte e oito','vinte e nove','trinta','trinta e um'];
@@ -1460,7 +1467,7 @@ async function gerarTermosCE(ce, autoridade, secretario, filtro){
 
     const B=_docxB, N=_docxN, S=_docxS, br=_docxBr;
     const parJ=_docxParJ, parC=_docxParC, parL=_docxParL;
-    const rodape=_docxRodape(RODAPE_DATA);
+    const rodape=_docxRodape();
 
     
     for(const decl of declarantes){
@@ -1473,7 +1480,7 @@ async function gerarTermosCE(ce, autoridade, secretario, filtro){
             const advNome=ce.advogado_nome||'______________________________';
             const advOAB =ce.advogado_oab ||'__________';
             children=[
-                _docxHeader(TIMBRE_DATA),
+                _docxHeader(),
                 parC([B('TERMO DE DECLARAÇÕES')]),
                 br(),
                 parJ([
@@ -1504,11 +1511,11 @@ async function gerarTermosCE(ce, autoridade, secretario, filtro){
                     [decl.nome,  'Sindicado'],
                     [secretario, 'Secretário'],
                 ]),
-                ..._docxRodape(RODAPE_DATA),
+                ..._docxRodape(),
             ];
         } else {
             children=[
-                _docxHeader(TIMBRE_DATA),
+                _docxHeader(),
                 parC([B('TERMO DE DECLARAÇÕES')]),
                 br(),
                 parJ([
@@ -1537,7 +1544,7 @@ async function gerarTermosCE(ce, autoridade, secretario, filtro){
                     [secretario, 'Secretário'],
                     ['', ''],
                 ]),
-                ..._docxRodape(RODAPE_DATA),
+                ..._docxRodape(),
             ];
         }
 
