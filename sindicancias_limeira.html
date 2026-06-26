@@ -211,7 +211,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 
 <!-- Stats (dentro da página Processos) -->
 <div class="stats" id="stats-bar">
-  <div class="stat"><div class="stat-n" id="st-total">—</div><div class="stat-label">Total CEs</div></div>
+  <div class="stat"><div class="stat-n" id="st-total">—</div><div class="stat-label">Sindicados</div></div>
+  <div class="stat"><div class="stat-n" id="st-ces-unicos">—</div><div class="stat-label">CEs únicos</div></div>
   <div class="stat"><div class="stat-n" id="st-aps">—</div><div class="stat-label">APs</div></div>
   <div class="stat"><div class="stat-n red" id="st-pend">—</div><div class="stat-label">Pendentes</div></div>
   <div class="stat"><div class="stat-n grn" id="st-conc">—</div><div class="stat-label">Concluídos</div></div>
@@ -741,6 +742,7 @@ async function boot(){
         if(rows&&rows.length>0){
             ces=rows.map(r=>Object.assign({},r,{steps:r.steps||{}}));
             setSyn('✓ Supabase — '+ces.length+' registros');
+            renderStats();
         }else{
             // Banco vazio — importar PLANILHA
             showOvl('Importando dados iniciais...');
@@ -850,7 +852,10 @@ function renderAll(){renderStats();renderList();renderDetail();}
 
 function renderStats(){
     const pids=ces.filter(c=>c.tipo==='PID');
+    const cesUnicos=new Set(pids.map(c=>c.nce)).size;
     gEl('st-total').textContent=pids.length;
+    const elCes=gEl('st-ces-unicos');
+    if(elCes) elCes.textContent=cesUnicos;
     gEl('st-aps').textContent=ces.filter(c=>c.tipo==='AP').length;
     gEl('st-pend').textContent=pids.filter(c=>c.situacao!='CONCLUÍDO'&&c.situacao!='ARQUIVADO'&&c.situacao!='ABSOLVIDO').length;
     gEl('st-conc').textContent=pids.filter(c=>c.situacao=='CONCLUÍDO').length;
@@ -1279,6 +1284,7 @@ function renderDash(){
     const ate=gEl('dash-ate')?.value||'';
     const gravF=gEl('dash-grav')?.value||'';
     const regF=gEl('dash-reg')?.value||'';
+    if(!ces.length){setTimeout(()=>renderDash(),500);return;}
     let pids=ces.filter(c=>c.tipo==='PID');
     if(de)pids=pids.filter(c=>c.data&&c.data>=de);
     if(ate)pids=pids.filter(c=>c.data&&c.data<=ate);
