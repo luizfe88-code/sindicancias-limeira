@@ -1676,6 +1676,62 @@ function toggleSelecionarTodosTrm(){
 function atualizarBotoesTrmPagina(){ atualizarBotoes(selTrmPagina); }
 function limparSelTrmPagina(){ limparSel(selTrmPagina,'trm-selall',renderTermosPg); }
 
+// ── Servidores ────────────────────────────────────────────────
+function preencherRgServidor(input, rgFieldId){
+    const nome=input.value.trim();
+    const srv=servidores.find(s=>s.nome===nome);
+    const rgEl=gEl(rgFieldId);
+    if(rgEl) rgEl.value=srv?srv.rg||'':'';
+}
+async function loadServidores(){
+    try{
+        const rows=await sbFetch('servidores?select=id,nome,rg&order=nome.asc');
+        servidores=rows||[];
+        // Selects de autoridade/secretário
+        ['cit-autoridade','cit-autoridade-pg','termos-autoridade','termos-secretario'].forEach(sid=>{
+            const sel=gEl(sid);
+            if(sel){const cur=sel.value;sel.innerHTML='<option value="">\u2014 Selecione \u2014</option>'+servidores.map(s=>`<option value="${s.nome}">${s.nome}</option>`).join('');if(cur)sel.value=cur;}
+        });
+        // Padrão Josimar / Leandro
+        ['termos-autoridade','trm-autoridade'].forEach(id=>{const el=gEl(id);if(el&&!el.value)for(const o of el.options){if(o.text.toUpperCase().includes('JOSIMAR')){el.value=o.value;break;}}});
+        ['termos-secretario','trm-secretario'].forEach(id=>{const el=gEl(id);if(el&&!el.value)for(const o of el.options){if(o.text.toUpperCase().includes('LEANDRO')){el.value=o.value;break;}}});
+        // Datalists comunicante/testemunha
+        ['dl-serv-com','dl-serv-test'].forEach(dlid=>{
+            const dl=gEl(dlid);
+            if(dl) dl.innerHTML=servidores.map(s=>`<option value="${s.nome}">${s.nome}${s.rg?' \u2014 '+s.rg:''}</option>`).join('');
+        });
+        renderListaServidores();
+    }catch(e){console.warn('Servidores:',e.message);}
+}
+function renderListaServidores(){
+    const el=gEl('srv-lista'); if(!el) return;
+    if(!servidores.length){el.innerHTML='<div style="padding:12px;color:#94a3b8;font-size:12px;text-align:center">Nenhum servidor cadastrado</div>';return;}
+    el.innerHTML=servidores.map(s=>`<div class="srv-item"><div><span style="font-weight:600">${s.nome}</span>${s.rg?'<span style="font-size:10px;color:#94a3b8;margin-left:8px">RG: '+s.rg+'</span>':''}</div><button class="btn" style="background:#fee2e2;color:#b91c1c;font-size:10px;padding:2px 8px" onclick="removerServidor(${s.id},'${s.nome.replace(/'/g,"\\'")}')">&#x2715;</button></div>`).join('');
+}
+function openModalServidores(){gEl('srv-modal').style.display='flex';loadServidores();}
+async function adicionarServidor(){
+    const nome=gEl('srv-nome-input').value.trim().toUpperCase();
+    if(!nome){toast('Informe o nome.','err');return;}
+    if(servidores.find(s=>s.nome===nome)){toast('J\u00e1 cadastrado.','err');return;}
+    const rg_srv=gEl('srv-rg-input')?.value.trim()||'';
+    try{
+        await sbFetch('servidores','POST',[{nome,rg:rg_srv}],{'Prefer':'return=minimal'});
+        gEl('srv-nome-input').value='';
+        if(gEl('srv-rg-input')) gEl('srv-rg-input').value='';
+        await loadServidores();
+        toast('Adicionado!','ok');
+    }catch(e){toast('Erro: '+e.message,'err');}
+}
+async function removerServidor(id,nome){
+    if(!confirm('Remover "'+nome+'"?')) return;
+    try{
+        await sbFetch('servidores?id=eq.'+id,'DELETE',undefined,{'Prefer':'return=minimal'});
+        await loadServidores();
+        toast('Removido.','ok');
+    }catch(e){toast('Erro: '+e.message,'err');}
+}
+
+
 // ── Citações página ────────────────────────────────────────────
 function citLocChange(){
     const loc=gEl('cit-f-loc')?.value||'';
