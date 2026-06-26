@@ -894,7 +894,7 @@ function renderList(){
         if(!isA(ce.id)){if(naUp)cStyle='background:#bfdbfe;border-left:3px solid #1d4ed8';else if(isTransf)cStyle='background:#fef9c3;border-left:3px solid #b45309';}
         return `<div class="ci${isA(ce.id)?' active':''}"${cStyle?' style="'+cStyle+'"':''} onclick="selCE('${ce.id}')">
             <div class="ci-nce">CE ${ce.nce}</div>
-            <div class="ci-nome">${ce.sindicado}${ce.matricula?' — '+ce.matricula:''}</div>
+            <div class="ci-nome">${ce.sindicado||'A AVERIGUAR'}${ce.matricula?' — '+ce.matricula:''}</div>
             <div class="ci-nat">${ce.natureza||'—'}</div>
             ${pbar}
             <div class="ci-bottom"><span class="ci-prog">${p?p.done+'/21 etapas':'AP'}</span><span class="ci-pct">${pctStr}</span></div>
@@ -948,7 +948,7 @@ function renderDetail(){
 
     el.innerHTML=`
     <div class="det-header">
-        <div class="det-title">CE ${ce.nce} — ${ce.sindicado}${ce.matricula?' — '+ce.matricula:''}</div>
+        <div class="det-title">CE ${ce.nce} — ${ce.sindicado||'A AVERIGUAR'}${ce.matricula?' — '+ce.matricula:''}</div>
         <div class="det-meta">
             <span><strong>SEI:</strong> ${ce.sei}</span>
             <span><strong>Mat.:</strong> ${ce.matricula}</span>
@@ -1172,7 +1172,7 @@ function renderRank(){
         const locCol=isNaUp?'<span style="font-size:9px;font-weight:700;background:#1d4ed8;color:#fff;padding:2px 7px;border-radius:8px">📍 Na UP</span>':isTransfR?'<span style="font-size:9px;font-weight:700;background:#b45309;color:#fff;padding:2px 7px;border-radius:8px">🔄 '+(ce.unidade_destino||'Transf.')+'</span>':'<span style="color:#94a3b8">—</span>';
         return`<tr${trStyle?' style="'+trStyle+'"':''}>
             <td><div class="rank-num" style="background:${col}">${i+1}</div></td>
-            <td><strong>CE ${ce.nce}</strong>${locBadge}<br><small style="color:#64748b">${ce.sindicado}${ce.matricula?' — '+ce.matricula:''}</small></td>
+            <td><strong>CE ${ce.nce}</strong>${locBadge}<br><small style="color:#64748b">${ce.sindicado||'A AVERIGUAR'}${ce.matricula?' — '+ce.matricula:''}</small></td>
             <td>${ce.natureza||'—'}</td>
             <td style="color:${ce.gravidade==='GRAVE'?'#b91c1c':ce.gravidade==='MÉDIA'?'#b45309':ce.gravidade==='LEVE'?'#1a7a4a':ce.gravidade==='PAD'?'#6366f1':ce.gravidade==='SINDICÂNCIA'?'#0891b2':'#94a3b8'};font-weight:700">${ce.gravidade||'—'}</td>
             <td style="color:${d>30?'#b91c1c':d>15?'#b45309':'#1a7a4a'};font-weight:600">${d}d</td>
@@ -1252,7 +1252,7 @@ function renderApr(){
     if(curObj)filtered=filtered.filter(c=>c.apreensoes===curObj);
     gEl('apr-body').innerHTML=filtered.map(ce=>`<tr>
         <td><strong>CE ${ce.nce}</strong></td>
-        <td>${ce.sindicado}${ce.matricula?' — '+ce.matricula:''}</td>
+        <td>${ce.sindicado||'A AVERIGUAR'}${ce.matricula?' — '+ce.matricula:''}</td>
         <td style="font-size:11px">${ce.natureza||'—'}</td>
         <td>${aprFmt(ce.apreensoes)}</td>
         <td style="font-size:11px;color:#64748b">${ce.execucao||'—'}</td>
@@ -1809,7 +1809,7 @@ function renderCitacoes(){
         const sel=selCitPagina.has(ce.id);
         return`<tr style="border-bottom:1px solid #f1f5f9;${rowBg};cursor:pointer" onclick="toggleSelCit('${ce.id}')">
             <td style="padding:9px 12px;text-align:center"><input type="checkbox" ${sel?'checked':''} onclick="event.stopPropagation();toggleSelCit('${ce.id}')" style="accent-color:#2557a7;width:15px;height:15px"></td>
-            <td style="padding:9px 12px"><strong>CE ${ce.nce}</strong><br><small style="color:#475569">${ce.sindicado}${ce.matricula?' — '+ce.matricula:''}</small></td>
+            <td style="padding:9px 12px"><strong>CE ${ce.nce}</strong><br><small style="color:#475569">${ce.sindicado||'A AVERIGUAR'}${ce.matricula?' — '+ce.matricula:''}</small></td>
             <td style="padding:9px 12px;font-size:11px;color:#475569">${ce.sei}</td>
             <td style="padding:9px 12px;font-size:11px">${ce.natureza||'—'}</td>
             <td style="padding:9px 12px;font-weight:700;color:${GRAV_COR[ce.gravidade]||'#475569'}">${ce.gravidade||'—'}</td>
@@ -1857,6 +1857,7 @@ function getPidsSemTermos(){
     const q=(gEl('trm-f-srch')?.value||'').toLowerCase();
     let list=ces.filter(c=>{
         if(c.tipo!=='PID') return false;
+        if(c.situacao==='CONCLUÍDO'||c.situacao==='ARQUIVADO') return false;
         const semCom=!(c.steps&&c.steps['decl_com']);
         const semTest=!(c.steps&&c.steps['decl_test']);
         if(tipo==='com') return semCom;
@@ -1900,7 +1901,7 @@ function gerarPDFCitacoes(lista,autoridade){
             <p style="text-align:center;font-weight:bold;font-size:15pt;letter-spacing:6px;margin:0 0 4px">C I T A Ç Ã O</p>
             <p style="text-align:center;font-weight:bold;font-size:11pt;margin:0 0 20px">PROCEDIMENTO INVESTIGATIVO DISCIPLINAR — C.E ${String(ce.nce).padStart(4,'0')}/2026</p>
             <table style="width:100%;border-collapse:collapse;font-size:11pt;margin-bottom:18px">
-              <tr><td style="font-weight:700;width:130px;padding:3px 0">Sindicado:</td><td style="padding:3px 0">${ce.sindicado}</td></tr>
+              <tr><td style="font-weight:700;width:130px;padding:3px 0">Sindicado:</td><td style="padding:3px 0">${ce.sindicado||'A AVERIGUAR'}</td></tr>
               <tr><td style="font-weight:700;padding:3px 0">Matrícula:</td><td style="padding:3px 0">${ce.matricula}</td></tr>
               <tr><td style="font-weight:700;padding:3px 0">Processo SEI:</td><td style="padding:3px 0">${ce.sei}</td></tr>
             </table>
@@ -1912,7 +1913,7 @@ function gerarPDFCitacoes(lista,autoridade){
             <p style="margin-bottom:50px">Limeira, ${dataExtenso}</p>
             <div style="display:flex;justify-content:space-between">
               <div style="width:42%;text-align:center"><div style="border-top:1.5px solid #000;padding-top:6px"><div style="font-weight:700">${autoridade}</div><div style="font-size:10pt;color:#555">Autoridade Apuradora</div></div></div>
-              <div style="width:42%;text-align:center;padding-top:50px"><div style="border-top:1.5px solid #000;padding-top:6px"><div>${ce.sindicado}</div><div style="font-size:10pt;color:#555">Matrícula: ${ce.matricula} — Ciente</div></div></div>
+              <div style="width:42%;text-align:center;padding-top:50px"><div style="border-top:1.5px solid #000;padding-top:6px"><div>${ce.sindicado||'A AVERIGUAR'}</div><div style="font-size:10pt;color:#555">Matrícula: ${ce.matricula} — Ciente</div></div></div>
             </div>
           </div>
           <div style="text-align:right;padding:10px 18mm 0 18mm;border-top:1px solid #ddd;margin:16px -18mm 0;"><img src="${R}" style="height:44px"></div>
