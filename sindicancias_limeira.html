@@ -713,7 +713,7 @@ const SEC_GROUPS=[{"title": "ABERTURA", "ids": ["cartorio", "gepen", "sei_criar"
 
 const GRAV_COR={GRAVE:'#b91c1c',MÉDIA:'#b45309',LEVE:'#1a7a4a',PAD:'#6366f1',SINDICÂNCIA:'#0891b2',ARQUIVAMENTO:'#94a3b8'};
 const GRAV_ORD={GRAVE:0,PAD:1,SINDICÂNCIA:2,MÉDIA:3,LEVE:4,ARQUIVAMENTO:5};
-const GRAV_SCORE=GRAV_SCORE;
+const GRAV_SCORE={GRAVE:100,PAD:90,SINDICÂNCIA:80,MÉDIA:50,LEVE:10,ARQUIVAMENTO:5};
 function gEl(id){return document.getElementById(id);}
 function gravBadge(g){return `<span style="font-size:10px;font-weight:700;color:#fff;background:${GRAV_COR[g]||'#94a3b8'};padding:1px 7px;border-radius:8px">${g||'—'}</span>`;}
 
