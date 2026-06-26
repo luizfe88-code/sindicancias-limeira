@@ -1448,7 +1448,7 @@ async function gerarTermosCE(ce, autoridade, secretario, filtro){
     if(!Document||!Packer){ toast('Biblioteca docx não carregou corretamente.','err'); return; }
 
     // Carregar imagens institucionais
-    async function fetchImg(url){ const r=await fetch(url); const ab=await r.arrayBuffer(); return new Uint8Array(ab); }
+    const fetchImg = async (url) => { const r=await fetch(url); const ab=await r.arrayBuffer(); return new Uint8Array(ab); };
     const TIMBRE_DATA = await fetchImg('./timbre.png');
     const RODAPE_DATA = await fetchImg('./rodape.png');
 
