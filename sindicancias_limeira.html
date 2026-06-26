@@ -450,24 +450,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 
 <!-- Página Termos -->
 <div class="page" id="page-termos-pg">
-  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
-    <div style="padding:12px 16px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <select id="trm-f-grav" onchange="renderTermosPg()" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;background:#fff">
-        <option value="">Todas gravidades</option>
-        <option>GRAVE</option><option>MÉDIA</option><option>LEVE</option>
-        <option>ARQUIVAMENTO</option><option>SINDICÂNCIA</option><option>PAD</option>
-      </select>
-      <select id="trm-f-tipo" onchange="renderTermosPg()" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;background:#fff">
-        <option value="">Pendentes (com ou test)</option>
-        <option value="com">Sem decl. comunicante</option>
-        <option value="test">Sem decl. testemunha</option>
-      </select>
-      <input id="trm-f-srch" placeholder="🔍 Buscar..." oninput="renderTermosPg()" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;min-width:160px">
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;margin-left:4px">
-        <input type="checkbox" id="trm-selall" onchange="toggleSelecionarTodosTrm()"> Selecionar todos
-      </label>
-      <span id="trm-total" style="font-size:11px;color:#94a3b8;margin-left:4px"></span>
-      <div id="trm-lote-btns" style="display:none;margin-left:auto;gap:8px;align-items:center;display:flex">
+  <div style="flex:1;display:flex;overflow:hidden">
+    <!-- Lista lateral de CEs -->
+    <div style="width:280px;flex-shrink:0;background:#fff;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:10px;border-bottom:1px solid #e2e8f0;display:flex;flex-direction:column;gap:6px">
+        <input id="trm-f-srch" placeholder="🔍 Buscar..." oninput="renderTermosPg()" style="border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:12px;width:100%">
+        <div style="display:flex;gap:6px">
+          <select id="trm-f-grav" onchange="renderTermosPg()" style="flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:4px 6px;font-size:11px;background:#fff">
+            <option value="">Todas gravidades</option>
+            <option>GRAVE</option><option>MÉDIA</option><option>LEVE</option>
+            <option>ARQUIVAMENTO</option><option>SINDICÂNCIA</option><option>PAD</option>
+          </select>
+          <select id="trm-f-tipo" onchange="renderTermosPg()" style="flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:4px 6px;font-size:11px;background:#fff">
+            <option value="">Com ou Test.</option>
+            <option value="com">Sem Comunicante</option>
+            <option value="test">Sem Testemunha</option>
+          </select>
+        </div>
+        <span id="trm-total" style="font-size:10px;color:#94a3b8"></span>
+      </div>
+      <div id="trm-lista" style="flex:1;overflow-y:auto"></div>
+    </div>
+    <!-- Detalhe / checklist do CE selecionado -->
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <!-- Barra de ação em lote -->
+      <div id="trm-lote-btns" style="display:none;padding:10px 16px;background:#eff6ff;border-bottom:1px solid #bfdbfe;gap:8px;align-items:center;flex-wrap:wrap">
         <span id="trm-lote-count" style="font-size:12px;font-weight:700;color:#1a2744"></span>
         <select id="trm-autoridade" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;background:#fff;min-width:180px">
           <option value="">— Autoridade Apuradora —</option>
@@ -475,26 +482,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
         <select id="trm-secretario" style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;background:#fff;min-width:180px">
           <option value="">— Secretário —</option>
         </select>
-        <button class="btn" style="background:#dbeafe;color:#1e3a8a;font-size:12px;padding:5px 14px" onclick="gerarTermosLote()">📝 Gerar .docx</button>
-        <button class="btn" style="background:#e2e8f0;color:#475569;font-size:11px;padding:5px 10px" onclick="limparSelTrmPagina()">✕</button>
+        <button class="btn" style="background:#1a2744;color:#fff;font-size:12px;padding:5px 14px" onclick="gerarTermosLote()">📝 Gerar .docx selecionados</button>
+        <button class="btn" style="background:#e2e8f0;color:#475569;font-size:11px;padding:5px 10px" onclick="limparSelTrmPagina()">✕ Limpar</button>
       </div>
-    </div>
-    <div style="flex:1;overflow-y:auto;padding:12px 16px">
-      <table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0">
-        <thead><tr style="background:#1a2744;color:#fff">
-          <th style="padding:9px 12px;font-size:11px;font-weight:600;width:36px"></th>
-          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">CE / Sindicado</th>
-          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">SEI</th>
-          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Natureza</th>
-          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Gravidade</th>
-          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Comunicante</th>
-          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Testemunha</th>
-          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Decl. Com.</th>
-          <th style="padding:9px 12px;font-size:11px;font-weight:600;text-align:left">Decl. Test.</th>
-          <th style="padding:9px 12px;font-size:11px;font-weight:600"></th>
-        </tr></thead>
-        <tbody id="trm-tbody"></tbody>
-      </table>
+      <!-- Checklist do CE ativo -->
+      <div id="trm-detalhe" style="flex:1;overflow-y:auto;padding:16px">
+        <div style="color:#94a3b8;font-size:13px;text-align:center;padding:40px">Selecione um processo na lista</div>
+      </div>
     </div>
   </div>
 </div>
@@ -1375,12 +1369,23 @@ async function gerarTermosCE(ce, autoridade, secretario, filtro){
     // Carregar docx-js via CDN (uma única vez)
     if(!window.docx){
         toast('Carregando biblioteca docx...','ok');
-        await new Promise((res,rej)=>{
-            const s=document.createElement('script');
-            s.src='https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js';
-            s.onload=res; s.onerror=()=>rej(new Error('Falha ao carregar biblioteca docx'));
-            document.head.appendChild(s);
-        });
+        const cdns=[
+            'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js',
+            'https://unpkg.com/docx@8.5.0/build/index.umd.js',
+        ];
+        let loaded=false;
+        for(const src of cdns){
+            try{
+                await new Promise((res,rej)=>{
+                    const s=document.createElement('script');
+                    s.src=src; s.onload=res;
+                    s.onerror=()=>rej(new Error('falhou: '+src));
+                    document.head.appendChild(s);
+                });
+                if(window.docx){loaded=true;break;}
+            }catch(e){console.warn(e.message);}
+        }
+        if(!loaded){toast('Não foi possível carregar a biblioteca docx. Verifique sua conexão.','err');return;}
     }
 
     const {Document,Packer,Paragraph,TextRun,AlignmentType,BorderStyle,UnderlineType} = window.docx;
@@ -1563,35 +1568,89 @@ const selTrmPagina = new Set();
 
 function renderTermosPg(){
     let list=getPidsSemTermos();
-    list.sort((a,b)=>{return (GRAV_ORD[a.gravidade]??6)-(GRAV_ORD[b.gravidade]??6)||dias(b.data)-dias(a.data);});
+    list.sort((a,b)=>(GRAV_ORD[a.gravidade]??6)-(GRAV_ORD[b.gravidade]??6)||dias(b.data)-dias(a.data));
     const total=gEl('trm-total');
     if(total) total.textContent=list.length+' processo(s) pendente(s)';
-    const tbody=gEl('trm-tbody');if(!tbody)return;
-    if(!list.length){tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:24px;color:#94a3b8;font-size:12px">✓ Nenhum processo pendente de termo</td></tr>';atualizarBotoesTrmPagina();return;}
-    
-    const chk=(step,ce)=>ce.steps&&ce.steps[step]?'<span style="color:#16a34a;font-weight:700">✓</span>':'<span style="color:#b91c1c">✕</span>';
-    tbody.innerHTML=list.map(ce=>{
+    const lista=gEl('trm-lista'); if(!lista) return;
+    if(!list.length){
+        lista.innerHTML='<div style="padding:20px;text-align:center;color:#94a3b8;font-size:12px">✓ Nenhum processo pendente</div>';
+        atualizarBotoesTrmPagina(); return;
+    }
+    lista.innerHTML=list.map(ce=>{
         const sel=selTrmPagina.has(ce.id);
-        return`<tr style="border-bottom:1px solid #f1f5f9;cursor:pointer" onclick="toggleSelTrm('${ce.id}')">
-            <td style="padding:9px 12px;text-align:center"><input type="checkbox" ${sel?'checked':''} onclick="event.stopPropagation();toggleSelTrm('${ce.id}')" style="accent-color:#2557a7;width:15px;height:15px"></td>
-            <td style="padding:9px 12px"><strong>CE ${ce.nce}</strong><br><small style="color:#475569">${ce.sindicado}${ce.matricula?' — '+ce.matricula:''}</small></td>
-            <td style="padding:9px 12px;font-size:11px;color:#475569">${ce.sei||'—'}</td>
-            <td style="padding:9px 12px;font-size:11px">${ce.natureza||'—'}</td>
-            <td style="padding:9px 12px;font-weight:700;color:${GRAV_COR[ce.gravidade]||'#475569'}">${ce.gravidade||'—'}</td>
-            <td style="padding:9px 12px;font-size:11px">${ce.comunicante_nome||'<span style="color:#94a3b8">—</span>'}</td>
-            <td style="padding:9px 12px;font-size:11px">${ce.testemunha_nome||'<span style="color:#94a3b8">—</span>'}</td>
-            <td style="padding:9px 12px;text-align:center">${chk('decl_com',ce)}</td>
-            <td style="padding:9px 12px;text-align:center">${chk('decl_test',ce)}</td>
-            <td style="padding:6px 10px"><button class="btn btn-pr" style="font-size:10px;padding:3px 9px;white-space:nowrap" onclick="event.stopPropagation();selCE('${ce.id}');showPage('proc',gEl('tab-proc'))">Abrir</button></td>
-        </tr>`;
+        const active=_trmCeId===ce.id;
+        const semCom=!(ce.steps&&ce.steps['decl_com']);
+        const semTest=!(ce.steps&&ce.steps['decl_test']);
+        const badges=(semCom?'<span style="font-size:9px;background:#fee2e2;color:#b91c1c;padding:1px 5px;border-radius:4px;margin-right:2px">Com</span>':'')+
+                     (semTest?'<span style="font-size:9px;background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:4px">Test</span>':'');
+        return`<div style="padding:10px;border-bottom:1px solid #f1f5f9;cursor:pointer;${active?'background:#eff6ff;border-left:3px solid #2557a7':'background:#fff'}"
+            onclick="trmSelecionarCE('${ce.id}')">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+                <input type="checkbox" ${sel?'checked':''} onclick="event.stopPropagation();toggleSelTrm('${ce.id}')"
+                    style="accent-color:#2557a7;width:13px;height:13px;flex-shrink:0">
+                <span style="font-size:11px;font-weight:700;color:#1a2744">CE ${ce.nce}</span>
+                <span style="font-size:10px;font-weight:700;color:${GRAV_COR[ce.gravidade]||'#94a3b8'}">${ce.gravidade||'—'}</span>
+            </div>
+            <div style="font-size:12px;color:#1e293b;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ce.sindicado||'—'}</div>
+            <div style="margin-top:3px">${badges}</div>
+        </div>`;
     }).join('');
-    atualizarBotoesTrmPagina();
-    // Popular selects de autoridade/secretario da aba
+    // Popular selects de autoridade/secretario
     ['trm-autoridade','trm-secretario'].forEach(sid=>{
         const sel=gEl(sid);
         if(sel&&servidores.length){const cur=sel.value;sel.innerHTML='<option value="">— Selecione —</option>'+servidores.map(s=>`<option value="${s.nome}">${s.nome}</option>`).join('');if(cur)sel.value=cur;}
     });
+    atualizarBotoesTrmPagina();
+    // Se havia CE ativo, re-renderizar detalhe
+    if(_trmCeId) trmRenderDetalhe(_trmCeId);
 }
+
+let _trmCeId=null;
+
+function trmSelecionarCE(id){
+    _trmCeId=id;
+    renderTermosPg();
+}
+
+function trmRenderDetalhe(id){
+    const ce=ces.find(c=>c.id===id);
+    const det=gEl('trm-detalhe'); if(!det||!ce) return;
+
+    // Checklist dos dois termos específicos: comunicante e testemunha
+    const itens=[
+        {id:'decl_com',  label:'Termo de Declaração do Comunicante',  info:ce.comunicante_nome||(ce.comunicante_nome?'':'<em style="color:#94a3b8">Comunicante não cadastrado</em>')},
+        {id:'decl_test', label:'Termo de Declaração da Testemunha',    info:ce.testemunha_nome||(ce.testemunha_nome?'':'<em style="color:#94a3b8">Testemunha não cadastrada</em>')},
+        {id:'decl_preso',label:'Termo de Declaração do Sindicado',     info:ce.sindicado+' — Mat. '+ce.matricula},
+    ];
+
+    const checkHtml=itens.map(item=>{
+        const isDone=!!(ce.steps&&ce.steps[item.id]);
+        return `<div class="step-item${isDone?' done':''}" onclick="toggleStep('${ce.id}','${item.id}');trmRenderDetalhe('${ce.id}')">
+            <div class="step-cb">${isDone?'✓':''}</div>
+            <div style="flex:1">
+                <div class="step-label">${item.label}</div>
+                <div style="font-size:10px;color:#94a3b8;margin-top:1px">${item.info}</div>
+            </div>
+        </div>`;
+    }).join('');
+
+    det.innerHTML=`
+        <div style="margin-bottom:14px">
+            <div style="font-size:15px;font-weight:700;color:#1a2744">CE ${ce.nce} — ${ce.sindicado||'—'}</div>
+            <div style="font-size:11px;color:#64748b;margin-top:3px">
+                Mat. ${ce.matricula||'—'} | SEI: ${ce.sei||'—'} | ${ce.gravidade||'—'} | ${fmtDate(ce.data)||'—'}
+            </div>
+            ${ce.comunicante_nome?`<div style="font-size:11px;color:#475569;margin-top:2px">Comunicante: <b>${ce.comunicante_nome}</b>${ce.comunicante_rg?' — RG '+ce.comunicante_rg:''}</div>`:''}
+            ${ce.testemunha_nome ?`<div style="font-size:11px;color:#475569;margin-top:2px">Testemunha: <b>${ce.testemunha_nome}</b>${ce.testemunha_rg?' — RG '+ce.testemunha_rg:''}</div>`:''}
+        </div>
+        <div class="sec-title"><span>TERMOS DE DECLARAÇÃO</span></div>
+        ${checkHtml}
+        <div style="margin-top:16px">
+            <button class="btn btn-pr" style="width:100%;padding:10px;font-size:13px" onclick="abrirModalTermos('${ce.id}')">📝 Gerar .docx para este CE</button>
+        </div>`;
+}
+
+
 function toggleSelTrm(id){toggleSel(selTrmPagina,id,renderTermosPg);}
 function toggleSelecionarTodosTrm(){
     const chk=gEl('trm-selall');
