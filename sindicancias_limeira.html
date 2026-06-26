@@ -1594,6 +1594,103 @@ async function gerarTermosLote(){
     toast(`Termos gerados para ${lista.length} processo(s)!`,'ok');
 }
 
+// ── Termos página ─────────────────────────────────────────────
+const selTrmPagina = new Set();
+let _trmCeId = null;
+
+function renderTermosPg(){
+    let list = getPidsSemTermos();
+    list.sort((a,b)=>(GRAV_ORD[a.gravidade]??6)-(GRAV_ORD[b.gravidade]??6)||dias(b.data)-dias(a.data));
+    const total = gEl('trm-total');
+    if(total) total.textContent = list.length + ' processo(s) pendente(s)';
+    const lista = gEl('trm-lista'); if(!lista) return;
+    if(!list.length){
+        lista.innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8;font-size:12px">✓ Nenhum processo pendente</div>';
+        atualizarBotoesTrmPagina(); return;
+    }
+    lista.innerHTML = list.map(ce=>{
+        const sel = selTrmPagina.has(ce.id);
+        const active = _trmCeId === ce.id;
+        const semCom = !(ce.steps&&ce.steps['decl_com']);
+        const semTest = !(ce.steps&&ce.steps['decl_test']);
+        const badges = (semCom ? '<span style="font-size:9px;background:#fee2e2;color:#b91c1c;padding:1px 5px;border-radius:4px;margin-right:2px">Com</span>' : '') +
+                       (semTest ? '<span style="font-size:9px;background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:4px">Test</span>' : '');
+        return `<div style="padding:10px;border-bottom:1px solid #f1f5f9;cursor:pointer;${active?'background:#eff6ff;border-left:3px solid #2557a7':'background:#fff'}"
+            onclick="trmSelecionarCE('${ce.id}')">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+                <input type="checkbox" ${sel?'checked':''} onclick="event.stopPropagation();toggleSelTrm('${ce.id}')"
+                    style="accent-color:#2557a7;width:13px;height:13px;flex-shrink:0">
+                <span style="font-size:11px;font-weight:700;color:#1a2744">CE ${ce.nce}</span>
+                <span style="font-size:10px;font-weight:700;color:${GRAV_COR[ce.gravidade]||'#94a3b8'}">${ce.gravidade||'—'}</span>
+            </div>
+            <div style="font-size:12px;color:#1e293b;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ce.sindicado||'—'}</div>
+            <div style="margin-top:3px">${badges}</div>
+        </div>`;
+    }).join('');
+    // Popular selects
+    ['trm-autoridade','trm-secretario'].forEach(sid=>{
+        const sel = gEl(sid);
+        if(sel&&servidores.length){
+            const cur = sel.value;
+            sel.innerHTML = '<option value="">— Selecione —</option>' + servidores.map(s=>`<option value="${s.nome}">${s.nome}</option>`).join('');
+            if(cur) sel.value = cur;
+        }
+    });
+    // Padrão
+    const taa=gEl('trm-autoridade'), tsec=gEl('trm-secretario');
+    if(taa&&!taa.value) for(const o of taa.options){if(o.text.toUpperCase().includes('JOSIMAR')){taa.value=o.value;break;}}
+    if(tsec&&!tsec.value) for(const o of tsec.options){if(o.text.toUpperCase().includes('LEANDRO')){tsec.value=o.value;break;}}
+    atualizarBotoesTrmPagina();
+    if(_trmCeId) trmRenderDetalhe(_trmCeId);
+}
+
+function trmSelecionarCE(id){
+    _trmCeId = id;
+    renderTermosPg();
+}
+
+function trmRenderDetalhe(id){
+    const ce = ces.find(c=>c.id===id);
+    const det = gEl('trm-detalhe'); if(!det||!ce) return;
+    const itens = [
+        {id:'decl_com',   label:'Decl. Comunicante', info: ce.comunicante_nome ? ce.comunicante_nome + (ce.comunicante_rg ? ' — RG ' + ce.comunicante_rg : '') : '<em style="color:#94a3b8">Não cadastrado</em>'},
+        {id:'decl_test',  label:'Decl. Testemunha',  info: ce.testemunha_nome  ? ce.testemunha_nome  + (ce.testemunha_rg  ? ' — RG ' + ce.testemunha_rg  : '') : '<em style="color:#94a3b8">Não cadastrada</em>'},
+        {id:'decl_preso', label:'Decl. Sindicado',   info: (ce.sindicado||'—') + ' — Mat. ' + (ce.matricula||'—')},
+    ];
+    const checkHtml = itens.map(item=>{
+        const isDone = !!(ce.steps&&ce.steps[item.id]);
+        return `<div class="step-item${isDone?' done':''}" onclick="toggleStep('${ce.id}','${item.id}');trmRenderDetalhe('${ce.id}')">
+            <div class="step-cb">${isDone?'✓':''}</div>
+            <div style="flex:1">
+                <div class="step-label">${item.label}</div>
+                <div style="font-size:10px;color:#94a3b8;margin-top:1px">${item.info}</div>
+            </div>
+        </div>`;
+    }).join('');
+    det.innerHTML = `
+        <div style="margin-bottom:14px">
+            <div style="font-size:15px;font-weight:700;color:#1a2744">CE ${ce.nce} — ${ce.sindicado||'—'}</div>
+            <div style="font-size:11px;color:#64748b;margin-top:3px">Mat. ${ce.matricula||'—'} | SEI: ${ce.sei||'—'} | ${ce.gravidade||'—'} | ${fmtDate(ce.data)||'—'}</div>
+            ${ce.comunicante_nome?`<div style="font-size:11px;color:#475569;margin-top:2px">Comunicante: <b>${ce.comunicante_nome}</b>${ce.comunicante_rg?' — RG '+ce.comunicante_rg:''}</div>`:''}
+            ${ce.testemunha_nome ?`<div style="font-size:11px;color:#475569;margin-top:2px">Testemunha: <b>${ce.testemunha_nome}</b>${ce.testemunha_rg?' — RG '+ce.testemunha_rg:''}</div>`:''}
+        </div>
+        <div class="sec-title"><span>TERMOS DE DECLARAÇÃO</span></div>
+        ${checkHtml}
+        <div style="margin-top:16px">
+            <button class="btn btn-pr" style="width:100%;padding:10px;font-size:13px" onclick="abrirModalTermos('${ce.id}')">📝 Gerar .docx para este CE</button>
+        </div>`;
+}
+
+function toggleSelTrm(id){ toggleSel(selTrmPagina, id, renderTermosPg); }
+function toggleSelecionarTodosTrm(){
+    const chk = gEl('trm-selall');
+    const list = getPidsSemTermos();
+    if(chk?.checked) list.forEach(c=>selTrmPagina.add(c.id)); else selTrmPagina.clear();
+    atualizarBotoes(selTrmPagina); renderTermosPg();
+}
+function atualizarBotoesTrmPagina(){ atualizarBotoes(selTrmPagina); }
+function limparSelTrmPagina(){ limparSel(selTrmPagina,'trm-selall',renderTermosPg); }
+
 // ── Citações página ────────────────────────────────────────────
 function citLocChange(){
     const loc=gEl('cit-f-loc')?.value||'';
