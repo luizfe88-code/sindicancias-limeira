@@ -1362,6 +1362,58 @@ async function confirmarGerarTermos(){
     await gerarTermosCE(ce, autoridade, secretario, selecionados);
 }
 
+
+// ── Helpers de geração de .docx (usados em gerarTermosCE) ────────
+function _docxB(t){const {TextRun}=window.docx;return new TextRun({text:t,bold:true,font:'Arial',size:24});}
+function _docxN(t){const {TextRun}=window.docx;return new TextRun({text:t,font:'Arial',size:24});}
+function _docxS(t){const {TextRun}=window.docx;return new TextRun({text:t,font:'Arial',size:18});}
+function _docxBr(){const {Paragraph,TextRun}=window.docx;return new Paragraph({spacing:{after:0},children:[new TextRun({text:'',size:24})]});}
+function _docxParJ(runs,sp){const {Paragraph,AlignmentType}=window.docx;return new Paragraph({alignment:AlignmentType.JUSTIFIED,spacing:{after:sp||200},children:runs});}
+function _docxParC(runs,sp){const {Paragraph,AlignmentType}=window.docx;return new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:sp||100},children:runs});}
+function _docxParL(runs,sp){const {Paragraph,AlignmentType}=window.docx;return new Paragraph({alignment:AlignmentType.LEFT,spacing:{after:sp||100},children:runs});}
+function _docxHeader(TIMBRE_DATA){
+    const {Paragraph,AlignmentType,BorderStyle,ImageRun}=window.docx;
+    return new Paragraph({
+        alignment:AlignmentType.RIGHT,spacing:{after:300},
+        border:{bottom:{style:BorderStyle.SINGLE,size:8,color:'1a2744',space:6}},
+        children:[new ImageRun({data:TIMBRE_DATA,transformation:{width:220,height:55},type:'png'})],
+    });
+}
+function _docxRodape(RODAPE_DATA){
+    const {Paragraph,AlignmentType,BorderStyle,ImageRun,TextRun}=window.docx;
+    return [
+        _docxBr(),
+        new Paragraph({
+            alignment:AlignmentType.RIGHT,spacing:{before:400,after:60},
+            border:{top:{style:BorderStyle.SINGLE,size:6,color:'1a2744',space:4}},
+            children:[new ImageRun({data:RODAPE_DATA,transformation:{width:200,height:45},type:'png'})],
+        }),
+        _docxParC([new TextRun({text:'Secretaria da Administração Penitenciária',font:'Arial',size:18})],40),
+        _docxParC([new TextRun({text:'Polícia Penal – Penitenciária de Limeira',bold:true,font:'Arial',size:18})],40),
+        _docxParC([new TextRun({text:'Rod. Luis Ometto, S/N – KM 32,1 – Zona Rural – CEP: 13.489-899 | Limeira, SP | Fone: (19) 3404-6800',font:'Arial',size:18})],0),
+    ];
+}
+function _docxAssinaturas(colunas){
+    const {Table,TableRow,TableCell,WidthType,Paragraph,BorderStyle}=window.docx;
+    const noBorder={style:BorderStyle.NONE,size:0,color:'FFFFFF'};
+    const borders={top:noBorder,bottom:noBorder,left:noBorder,right:noBorder,insideH:noBorder,insideV:noBorder};
+    return new Table({
+        width:{size:100,type:WidthType.PERCENTAGE},
+        borders,
+        rows:[new TableRow({children:
+            colunas.map(function(col){return new TableCell({
+                width:{size:50,type:WidthType.PERCENTAGE},
+                borders,
+                children:[
+                    _docxBr(),
+                    new Paragraph({spacing:{after:0},children:[col[0]?_docxB(col[0]):_docxN('')]}),
+                    new Paragraph({spacing:{after:0},children:[col[1]?_docxN(col[1]):_docxN('')]}),
+                ],
+            });})
+        })],
+    });
+}
+
 async function gerarTermosCE(ce, autoridade, secretario, filtro){
     const todos = [];
     if(ce.comunicante_nome) todos.push({nome:ce.comunicante_nome, rg:ce.comunicante_rg||'', profissao:'Policial Penal', papel:'Comunicante', tipo:'comunicante'});
@@ -1396,80 +1448,11 @@ async function gerarTermosCE(ce, autoridade, secretario, filtro){
     if(!Document||!Packer){ toast('Biblioteca docx não carregou corretamente.','err'); return; }
 
     // Converter base64 → Uint8Array para ImageRun
-    function b64ToUint8(b64){
-        const bin=atob(b64); const arr=new Uint8Array(bin.length);
-        for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i); return arr;
-    }
-        // Carregar imagens para o docx
-    async function fetchImg(url){ const r=await fetch(url); const ab=await r.arrayBuffer(); return new Uint8Array(ab); }
-    const TIMBRE_DATA = await fetchImg('./timbre.png');
-    const RODAPE_DATA = await fetchImg('./rodape.png');
+    const B=_docxB, N=_docxN, S=_docxS, br=_docxBr;
+    const parJ=_docxParJ, parC=_docxParC, parL=_docxParL;
+    const rodape=_docxRodape(RODAPE_DATA);
 
-    const hoje = new Date();
-    const diasExt=['primeiro','dois','três','quatro','cinco','seis','sete','oito','nove','dez',
-        'onze','doze','treze','quatorze','quinze','dezesseis','dezessete','dezoito','dezenove','vinte',
-        'vinte e um','vinte e dois','vinte e três','vinte e quatro','vinte e cinco','vinte e seis',
-        'vinte e sete','vinte e oito','vinte e nove','trinta','trinta e um'];
-    const mesesExt=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-    const anoExt={2025:'dois mil e vinte e cinco',2026:'dois mil e vinte e seis',2027:'dois mil e vinte e sete',2028:'dois mil e vinte e oito'};
-    const dataExtenso=`${diasExt[hoje.getDate()-1]} dias do mês de ${mesesExt[hoje.getMonth()]} do ano de ${anoExt[hoje.getFullYear()]||hoje.getFullYear()}`;
-
-    function B(t){return new TextRun({text:t,bold:true,font:'Arial',size:24});}
-    function N(t){return new TextRun({text:t,font:'Arial',size:24});}
-    function S(t){return new TextRun({text:t,font:'Arial',size:18});}
-    function br(){return new Paragraph({spacing:{after:0},children:[new TextRun({text:'',size:24})]});}
-    function parJ(runs,sp){return new Paragraph({alignment:AlignmentType.JUSTIFIED,spacing:{after:sp||200},children:runs});}
-    function parC(runs,sp){return new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:sp||100},children:runs});}
-    function parL(runs,sp){return new Paragraph({alignment:AlignmentType.LEFT,spacing:{after:sp||100},children:runs});}
-
-    // Cabeçalho com timbre (imagem à direita)
-    function makeHeader(){
-        return new Paragraph({
-            alignment:AlignmentType.RIGHT,
-            spacing:{after:300},
-            border:{bottom:{style:BorderStyle.SINGLE,size:8,color:'1a2744',space:6}},
-            children:[new ImageRun({data:TIMBRE_DATA,transformation:{width:220,height:55},type:'png'})],
-        });
-    }
-
-    // Rodapé com imagem
-    function makeRodape(){
-        return [
-            br(),
-            new Paragraph({
-                alignment:AlignmentType.RIGHT,
-                spacing:{before:400,after:60},
-                border:{top:{style:BorderStyle.SINGLE,size:6,color:'1a2744',space:4}},
-                children:[new ImageRun({data:RODAPE_DATA,transformation:{width:200,height:45},type:'png'})],
-            }),
-            parC([S('Secretaria da Administração Penitenciária')],40),
-            parC([new TextRun({text:'Polícia Penal – Penitenciária de Limeira',bold:true,font:'Arial',size:18})],40),
-            parC([S('Rod. Luis Ometto, S/N – KM 32,1 – Zona Rural – CEP: 13.489-899 | Limeira, SP | Fone: (19) 3404-6800')],0),
-        ];
-    }
-
-    // Tabela de 2 colunas para assinaturas (evita quebra de layout)
-    function makeAssinaturas(colunas){
-        // colunas: [[linha1Col1, linha2Col1], [linha1Col2, linha2Col2]]
-        const noBorder={style:BorderStyle.NONE,size:0,color:'FFFFFF'};
-        const borders={top:noBorder,bottom:noBorder,left:noBorder,right:noBorder,insideH:noBorder,insideV:noBorder};
-        return new Table({
-            width:{size:100,type:WidthType.PERCENTAGE},
-            borders,
-            rows:[new TableRow({children:
-                colunas.map(col=>new TableCell({
-                    width:{size:50,type:WidthType.PERCENTAGE},
-                    borders,
-                    children:[
-                        br(),
-                        new Paragraph({spacing:{after:0},children:[col[0]?B(col[0]):N('')]}),
-                        new Paragraph({spacing:{after:0},children:[col[1]?N(col[1]):N('')]}),
-                    ],
-                }))
-            )}],
-        });
-    }
-
+    
     for(const decl of declarantes){
         const nomeArq=`CE_${String(ce.nce).padStart(4,'0')}_Termo_${decl.papel}_${decl.nome.split(' ')[0]}.docx`;
         const nceStr=`${String(ce.nce).padStart(4,'0')}/2026 – Penitenciária de Limeira`;
@@ -1480,7 +1463,7 @@ async function gerarTermosCE(ce, autoridade, secretario, filtro){
             const advNome=ce.advogado_nome||'______________________________';
             const advOAB =ce.advogado_oab ||'__________';
             children=[
-                makeHeader(),
+                _docxHeader(TIMBRE_DATA),
                 parC([B('TERMO DE DECLARAÇÕES')]),
                 br(),
                 parJ([
@@ -1502,20 +1485,20 @@ async function gerarTermosCE(ce, autoridade, secretario, filtro){
                     N('Alertado sobre seus direitos constitucionais, descritos no artigo 5º, inciso LXIII, da Constituição Federal, e inquirido sobre os fatos descritos na Comunicação de Evento supra descrita, declara: que concorda em ser ouvido por meio de tele atendimento através do aplicativo "Microsoft Teams"; que _______________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________. Passada a palavra à defesa. Satisfeita com a declaração do sindicado, apresentará a defesa no momento oportuno. Nada mais disse, nem lhe foi perguntado. Nada mais havendo a lavrar, ordenou a Autoridade Apuradora o encerramento do presente Termo que, após lido e achado conforme, devidamente assinado por todos os presentes e por mim, Secretário, que o digitei.'),
                 ]),
                 br(),br(),
-                makeAssinaturas([
+                _docxAssinaturas([
                     [autoridade, 'Autoridade Apuradora'],
                     [advNome,    'OAB/SP nº '+advOAB],
                 ]),
                 br(),
-                makeAssinaturas([
+                _docxAssinaturas([
                     [decl.nome,  'Sindicado'],
                     [secretario, 'Secretário'],
                 ]),
-                ...makeRodape(),
+                ..._docxRodape(RODAPE_DATA),
             ];
         } else {
             children=[
-                makeHeader(),
+                _docxHeader(TIMBRE_DATA),
                 parC([B('TERMO DE DECLARAÇÕES')]),
                 br(),
                 parJ([
@@ -1535,16 +1518,16 @@ async function gerarTermosCE(ce, autoridade, secretario, filtro){
                 br(),
                 parJ([N('Nada mais havendo a lavrar, ordenou a Autoridade Apuradora o encerramento do presente termo que, após lido e achado conforme, vai devidamente assinado por todos os presentes, e por mim, secretário que o digitei.')]),
                 br(),br(),
-                makeAssinaturas([
+                _docxAssinaturas([
                     [decl.nome,  decl.papel],
                     [autoridade, 'Autoridade Apuradora'],
                 ]),
                 br(),
-                makeAssinaturas([
+                _docxAssinaturas([
                     [secretario, 'Secretário'],
                     ['', ''],
                 ]),
-                ...makeRodape(),
+                ..._docxRodape(RODAPE_DATA),
             ];
         }
 
