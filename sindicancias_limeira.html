@@ -554,8 +554,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 <div class="mo" id="modal-termos" style="display:none" onclick="if(event.target===this)document.getElementById('modal-termos').style.display='none'">
   <div class="mo-box" style="width:500px">
     <div class="mo-title">📝 Gerar Termos de Declaração</div>
-    <div style="font-size:12px;color:#64748b;margin-bottom:14px">Serão gerados 3 arquivos .docx editáveis — um por declarante.</div>
-    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px" id="termos-preview"></div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:10px">Selecione os declarantes para gerar:</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px" id="termos-preview"></div>
     <div class="fg">
       <label>Autoridade Apuradora</label>
       <select id="termos-autoridade" style="border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:13px;width:100%">
@@ -1328,11 +1328,12 @@ function abrirModalTermos(id){
     if(ce.testemunha_nome) declarantes.push({label:'Testemunha', nome:ce.testemunha_nome, rg:ce.testemunha_rg||'—', tipo:'testemunha'});
     declarantes.push({label:'Sindicado', nome:ce.sindicado, rg:ce.matricula||'—', tipo:'sindicado'});
 
-    prev.innerHTML = declarantes.map(d => `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0">
+    prev.innerHTML = declarantes.map(d => `<label style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer">
+        <input type="checkbox" checked data-tipo="${d.tipo}" style="accent-color:#2557a7;width:15px;height:15px;flex-shrink:0">
         <span style="font-size:10px;font-weight:700;background:#1a2744;color:#fff;padding:2px 8px;border-radius:8px;white-space:nowrap">${d.label}</span>
         <span style="font-size:12px;font-weight:600">${d.nome}</span>
-        <span style="font-size:11px;color:#94a3b8">RG/Mat: ${d.rg}</span>
-    </div>`).join('');
+        <span style="font-size:11px;color:#94a3b8">${d.rg}</span>
+    </label>`).join('');
 
     // Popular selects de autoridade e secretário
     const opts = '<option value="">— Selecione —</option>' + servidores.map(s=>`<option value="${s.nome}">${s.nome}${s.rg?' — RG: '+s.rg:''}</option>`).join('');
@@ -1349,15 +1350,20 @@ async function confirmarGerarTermos(){
     if(!secretario){toast('Selecione o Secretário.','err');return;}
     const ce = ces.find(c => c.id === _termoCeId);
     if(!ce) return;
+    // Coletar tipos selecionados via checkboxes
+    const selecionados = [...document.querySelectorAll('#termos-preview input[type=checkbox]:checked')].map(el=>el.dataset.tipo);
+    if(!selecionados.length){toast('Selecione ao menos um declarante.','err');return;}
     document.getElementById('modal-termos').style.display='none';
-    await gerarTermosCE(ce, autoridade, secretario);
+    await gerarTermosCE(ce, autoridade, secretario, selecionados);
 }
 
-async function gerarTermosCE(ce, autoridade, secretario){
-    const declarantes = [];
-    if(ce.comunicante_nome) declarantes.push({nome:ce.comunicante_nome, rg:ce.comunicante_rg||'', profissao:'Policial Penal', papel:'Comunicante'});
-    if(ce.testemunha_nome) declarantes.push({nome:ce.testemunha_nome, rg:ce.testemunha_rg||'', profissao:'Policial Penal', papel:'Testemunha'});
-    declarantes.push({nome:ce.sindicado, rg:ce.matricula||'', profissao:'Sentenciado', papel:'Sindicado'});
+async function gerarTermosCE(ce, autoridade, secretario, filtro){
+    // filtro: array de tipos a gerar, ex: ['comunicante','sindicado']. Null/undefined = todos.
+    const todos = [];
+    if(ce.comunicante_nome) todos.push({nome:ce.comunicante_nome, rg:ce.comunicante_rg||'', profissao:'Policial Penal', papel:'Comunicante', tipo:'comunicante'});
+    if(ce.testemunha_nome) todos.push({nome:ce.testemunha_nome, rg:ce.testemunha_rg||'', profissao:'Policial Penal', papel:'Testemunha', tipo:'testemunha'});
+    todos.push({nome:ce.sindicado, rg:ce.matricula||'', profissao:'Sentenciado', papel:'Sindicado', tipo:'sindicado'});
+    const declarantes = filtro ? todos.filter(d=>filtro.includes(d.tipo)) : todos;
 
     // Carregar docx-js via CDN e gerar
     if(!window.docx){
@@ -1630,10 +1636,13 @@ async function gerarTermosLote(){
     if(!autoridade){toast('Selecione a Autoridade Apuradora.','err');return;}
     if(!secretario){toast('Selecione o Secretário.','err');return;}
     if(!selTrmPagina.size){toast('Selecione ao menos um processo.','err');return;}
+    // Ler filtro de tipo da aba (com, test ou ambos)
+    const tipoFiltro=document.getElementById('trm-f-tipo')?.value||'';
+    const filtro = tipoFiltro==='com'?['comunicante']:tipoFiltro==='test'?['testemunha']:null; // null = todos
     const lista=[...selTrmPagina].map(id=>ces.find(c=>c.id===id)).filter(Boolean);
     toast('Gerando termos...','ok');
     for(const ce of lista){
-        await gerarTermosCE(ce, autoridade, secretario);
+        await gerarTermosCE(ce, autoridade, secretario, filtro);
         await new Promise(r=>setTimeout(r,600));
     }
     selTrmPagina.clear();
