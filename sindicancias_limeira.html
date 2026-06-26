@@ -226,7 +226,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
         <div class="filters">
           <select id="f-sit" onchange="renderList()">
             <option value="">Todas situações</option>
-            <option>PENDENTE</option><option>CONCLUÍDO</option><option>SOBRESTADO</option>
+            <option selected>PENDENTE</option><option>CONCLUÍDO</option><option>SOBRESTADO</option>
             <option>ARQUIVADO</option><option>ABSOLVIDO</option>
             <option>SINDICÂNCIA</option><option>PAD</option>
           </select>
@@ -1509,8 +1509,7 @@ async function gerarTermosCE(ce, autoridade, secretario, filtro){
             children,
         }]});
 
-        const buf = await Packer.toBuffer(doc);
-        const blob = new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+        const blob = await Packer.toBlob(doc);
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href=url; a.download=nomeArq; a.click();
