@@ -122,7 +122,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .apr-table td{padding:9px 12px;border-bottom:1px solid #f1f5f9;font-size:12px}
 /* ── Dashboard ── */
 .dash-page{flex:1;overflow-y:auto;padding:12px;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:auto auto;gap:10px;align-content:start}
-.dash-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px}
+.dash-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px;overflow:hidden}
 .dash-card h3{font-size:12px;font-weight:700;color:#1a2744;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
 /* ── Modal ── */
 .mo{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center}
@@ -440,12 +440,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
     </div>
     <div id="dash-kpis" style="display:flex;gap:1px;background:#e2e8f0;flex-shrink:0"></div>
     <div style="flex:1;overflow-y:auto;padding:12px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-content:start">
-      <div class="dash-card"><h3>Por Natureza</h3><canvas id="ch-nat" height="130"></canvas></div>
-      <div class="dash-card"><h3>Por Gravidade</h3><canvas id="ch-grav" height="130"></canvas></div>
-      <div class="dash-card"><h3>Por Situação</h3><canvas id="ch-sit" height="130"></canvas></div>
-      <div class="dash-card"><h3>Por Regime</h3><canvas id="ch-reg" height="130"></canvas></div>
-      <div class="dash-card"><h3>Defesa — FUNAP vs Particular</h3><canvas id="ch-cit" height="130"></canvas></div>
-      <div class="dash-card"><h3>Localização dos Presos</h3><canvas id="ch-loc" height="130"></canvas></div>
+      <div class="dash-card"><h3>Por Natureza</h3><canvas id="ch-nat" height="160" width="300" style="max-width:100%"></canvas></div>
+      <div class="dash-card"><h3>Por Gravidade</h3><canvas id="ch-grav" height="160" width="300" style="max-width:100%"></canvas></div>
+      <div class="dash-card"><h3>Por Situação</h3><canvas id="ch-sit" height="160" width="300" style="max-width:100%"></canvas></div>
+      <div class="dash-card"><h3>Por Regime</h3><canvas id="ch-reg" height="160" width="300" style="max-width:100%"></canvas></div>
+      <div class="dash-card"><h3>Defesa — FUNAP vs Particular</h3><canvas id="ch-cit" height="160" width="300" style="max-width:100%"></canvas></div>
+      <div class="dash-card"><h3>Localização dos Presos</h3><canvas id="ch-loc" height="160" width="300" style="max-width:100%"></canvas></div>
     </div>
   </div>
 </div>
@@ -1054,7 +1054,8 @@ function openModal(id){
     editId=id||null;
     gEl('modal-title').textContent=id?'Editar CE':'Novo CE';
     // Clear all
-    ['f-nce','f-sei','f-sind','f-mat','f-nat','f-exec','f-apr','f-qtd','f-un','f-data','f-dtp','f-dth','f-dtc','f-ud'].forEach(x=>gEl(x).value='');
+    ['f-nce','f-sei','f-sind','f-mat','f-nat','f-exec','f-data','f-dtp','f-dth','f-dtc','f-ud'].forEach(x=>{const el=gEl(x);if(el)el.value='';});
+    aprSetLinhas(''); // inicializar linha de apreensão
     ['f-reg','f-grav','f-sit-m','f-tipo-m','f-rein','f-atv','f-loc','f-com-nome','f-com-rg','f-test-nome','f-test-rg'].forEach(x=>gEl(x).value=x==='f-sit-m'?'PENDENTE':x==='f-tipo-m'?'PID':'');
     ['f-cit-funap','f-cit-part'].forEach(x=>gEl(x).checked=false);
     gEl('fg-ud').style.display='none';
@@ -1337,7 +1338,7 @@ function renderDash(){
         if(charts[id])charts[id].destroy();
         const el=gEl(id);if(!el)return;
         charts[id]=new Chart(el.getContext('2d'),{type,data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:1}]},
-            options:{plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10}}},
+            options:{responsive:false,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10}}},
             scales:type==='bar'?{y:{ticks:{font:{size:10}}},x:{ticks:{font:{size:9}}}}:{}}});
     };
     const natSorted=Object.entries(count(pids,'natureza')).sort((a,b)=>b[1]-a[1]);
