@@ -1390,9 +1390,7 @@ async function gerarTermosCE(ce, autoridade, secretario, filtro){
         if(!loaded){toast('Não foi possível carregar a biblioteca docx. Verifique sua conexão.','err');return;}
     }
 
-    const {Document,Packer,Paragraph,TextRun,AlignmentType,BorderStyle,
-           ImageRun,Table,TableRow,TableCell,WidthType,BorderStyle:BS,
-           VerticalAlign,TableLayoutType,HeightRule} = window.docx;
+    const {Document,Packer,Paragraph,TextRun,AlignmentType,BorderStyle,ImageRun,Table,TableRow,TableCell,WidthType} = window.docx;
 
     if(!Document||!Packer){ toast('Biblioteca docx não carregou corretamente.','err'); return; }
 
@@ -1454,14 +1452,13 @@ async function gerarTermosCE(ce, autoridade, secretario, filtro){
         const borders={top:noBorder,bottom:noBorder,left:noBorder,right:noBorder,insideH:noBorder,insideV:noBorder};
         return new Table({
             width:{size:100,type:WidthType.PERCENTAGE},
-            layout:TableLayoutType.FIXED,
             borders,
-            rows:[new TableRow({height:{value:400,rule:HeightRule.ATLEAST},children:
+            rows:[new TableRow({children:
                 colunas.map(col=>new TableCell({
                     width:{size:50,type:WidthType.PERCENTAGE},
                     borders,
-                    verticalAlign:VerticalAlign.BOTTOM,
                     children:[
+                        br(),
                         new Paragraph({spacing:{after:0},children:[col[0]?B(col[0]):N('')]}),
                         new Paragraph({spacing:{after:0},children:[col[1]?N(col[1]):N('')]}),
                     ],
